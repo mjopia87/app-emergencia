@@ -1,0 +1,206 @@
+{
+  "modalVehiculos": {
+    "titulo": "Registro de Vehículos",
+    "campos": [
+      {
+        "id": "ppu",
+        "label": "PPU (Placa Patente)",
+        "tipo": "text",
+        "requerido": true,
+        "maxLength": 10,
+        "placeholder": "Ej: TVKJ-21",
+        "validacion": "única, alfanumérica",
+        "orden": 1
+      },
+      {
+        "id": "tipoVehiculo",
+        "label": "Tipo de Vehículo",
+        "tipo": "select",
+        "requerido": true,
+        "opciones": [
+          "Minibus",
+          "Rodillo",
+          "Motoniveladora",
+          "Retroexcavadora",
+          "Camión",
+          "Camión Recolector",
+          "Camión Pluma",
+          "Camión Aljibe",
+          "Bus",
+          "Camioneta",
+          "Automóvil",
+          "Van",
+          "Station Wagon",
+          "Excavadora",
+          "Clínica Vet"
+        ],
+        "orden": 2
+      },
+      {
+        "id": "combustible",
+        "label": "Combustible",
+        "tipo": "select",
+        "requerido": true,
+        "opciones": [
+          "DIESEL",
+          "BENCINA",
+          "GAS"
+        ],
+        "orden": 3
+      },
+      {
+        "id": "marca",
+        "label": "Marca",
+        "tipo": "autocomplete",
+        "requerido": true,
+        "opciones": [
+          "Maxus",
+          "Caterpillar",
+          "John Deere",
+          "Chevrolet",
+          "Hyundai",
+          "Mercedes Benz",
+          "Toyota",
+          "Mitsubishi",
+          "Volkswagen",
+          "Mazda",
+          "Kia",
+          "New Holland Construct",
+          "Chery",
+          "Nissan",
+          "Ford",
+          "HINO",
+          "Komatsu",
+          "Ssanyong",
+          "DEVELON",
+          "Karry"
+        ],
+        "placeholder": "Selecciona o escribe la marca",
+        "orden": 4
+      },
+      {
+        "id": "modelo",
+        "label": "Modelo",
+        "tipo": "text",
+        "requerido": true,
+        "placeholder": "Ej: G90 2.0 AUT",
+        "orden": 5
+      },
+      {
+        "id": "anio",
+        "label": "Año",
+        "tipo": "select",
+        "requerido": true,
+        "minimo": 1990,
+        "maximo": 2026,
+        "orden": 6
+      }
+    ],
+    "camposOpcionales": [
+      {
+        "id": "estanque",
+        "label": "Estanque (litros)",
+        "tipo": "number",
+        "requerido": false,
+        "placeholder": "Ej: 72",
+        "orden": 7
+      },
+      {
+        "id": "cilindrada",
+        "label": "Cilindrada",
+        "tipo": "number",
+        "requerido": false,
+        "paso": 0.1,
+        "placeholder": "Ej: 2.0",
+        "orden": 8
+      },
+      {
+        "id": "chasis",
+        "label": "Número de Chasis",
+        "tipo": "text",
+        "requerido": false,
+        "placeholder": "VIN o número de chasis",
+        "orden": 9
+      },
+      {
+        "id": "motor",
+        "label": "Número de Motor",
+        "tipo": "text",
+        "requerido": false,
+        "orden": 10
+      },
+      {
+        "id": "vin",
+        "label": "VIN",
+        "tipo": "text",
+        "requerido": false,
+        "maxLength": 17,
+        "orden": 11
+      },
+      {
+        "id": "estado",
+        "label": "Estado",
+        "tipo": "select",
+        "requerido": false,
+        "opciones": [
+          "MUNICIPAL",
+          "ARRENDADA"
+        ],
+        "orden": 12
+      }
+    ],
+    "estadisticas": {
+      "totalRegistros": 70,
+      "municipales": 59,
+      "arrendadas": 11,
+      "anioMinimo": 2001,
+      "anioMaximo": 2026
+    }
+  },
+  "ejemploVehiculo": {
+    "ppu": "TVKJ-21",
+    "tipoVehiculo": "Minibus",
+    "combustible": "DIESEL",
+    "marca": "Maxus",
+    "modelo": "G90 2.0 AUT",
+    "anio": 2025,
+    "estanque": 72,
+    "cilindrada": 2.0,
+    "chasis": "LSKG4GC17SD042042",
+    "motor": "20M163Q6AM9249058382",
+    "vin": "LSKG4GC17SD042042",
+    "estado": "MUNICIPAL"
+  },
+  "validaciones": {
+    "ppu": {
+      "requerido": true,
+      "unico": true,
+      "minLength": 5,
+      "maxLength": 10,
+      "patron": "^[A-Z0-9-]+$"
+    },
+    "tipoVehiculo": {
+      "requerido": true,
+      "tipo": "enumerado"
+    },
+    "combustible": {
+      "requerido": true,
+      "tipo": "enumerado"
+    },
+    "marca": {
+      "requerido": true,
+      "tipo": "lista o texto"
+    },
+    "modelo": {
+      "requerido": true,
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "anio": {
+      "requerido": true,
+      "tipo": "numero",
+      "minimo": 1990,
+      "maximo": 2026
+    }
+  }
+}

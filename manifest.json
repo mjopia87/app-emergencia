@@ -1,0 +1,50 @@
+{
+  "name": "APP Emergencia Illapel 2026",
+  "short_name": "Emergencia",
+  "description": "Gestión de emergencia para la comuna de Illapel - Julio 2026",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#c41e3a",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%23c41e3a' width='192' height='192'/><text x='50%' y='50%' font-size='100' fill='white' text-anchor='middle' dominant-baseline='central'>🚨</text></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 540 720'><rect fill='%23ecf0f1' width='540' height='720'/><text x='270' y='360' font-size='80' text-anchor='middle' dominant-baseline='central'>APP Emergencia</text></svg>",
+      "sizes": "540x720",
+      "type": "image/svg+xml",
+      "form_factor": "narrow"
+    }
+  ],
+  "categories": ["emergency", "utilities"],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "Ver resumen operacional",
+      "url": "./index.html?module=dashboard",
+      "icons": [{ "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'><rect fill='%23c41e3a' width='96' height='96'/><text x='50%' y='50%' font-size='50' fill='white' text-anchor='middle' dominant-baseline='central'>📊</text></svg>", "sizes": "96x96" }]
+    },
+    {
+      "name": "Beneficiarios",
+      "short_name": "Beneficiarios",
+      "description": "Gestionar beneficiarios",
+      "url": "./index.html?module=beneficiarios",
+      "icons": [{ "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'><rect fill='%2327ae60' width='96' height='96'/><text x='50%' y='50%' font-size='50' fill='white' text-anchor='middle' dominant-baseline='central'>👥</text></svg>", "sizes": "96x96" }]
+    },
+    {
+      "name": "Emergencias",
+      "short_name": "Emergencias",
+      "description": "Registrar emergencias",
+      "url": "./index.html?module=contactos",
+      "icons": [{ "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'><rect fill='%23e74c3c' width='96' height='96'/><text x='50%' y='50%' font-size='50' fill='white' text-anchor='middle' dominant-baseline='central'>📞</text></svg>", "sizes": "96x96" }]
+    }
+  ]
+}

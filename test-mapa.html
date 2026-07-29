@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test - Visor de Mapas APP Emergencia</title>
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+    <!-- Easy Button -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-easybutton@2.4.0/dist/easy-button.css" />
+
+    <!-- Map Styles -->
+    <link rel="stylesheet" href="modules/map-styles.css" />
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #f0f0f0;
+        }
+
+        .header {
+            background: #c41e3a;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 20px auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .content {
+            display: flex;
+            height: 600px;
+        }
+
+        .sidebar {
+            width: 300px;
+            border-right: 1px solid #ddd;
+            overflow-y: auto;
+            padding: 15px;
+            background: #f9f9f9;
+        }
+
+        .sidebar h3 {
+            color: #c41e3a;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+
+        .sidebar-section {
+            margin-bottom: 20px;
+        }
+
+        .sidebar-item {
+            padding: 8px;
+            background: white;
+            border-radius: 4px;
+            margin-bottom: 5px;
+            font-size: 12px;
+            border-left: 3px solid transparent;
+            cursor: pointer;
+        }
+
+        .sidebar-item:hover {
+            background: #f0f0f0;
+            border-left-color: #c41e3a;
+        }
+
+        .sidebar-item.selected {
+            background: #fff3cd;
+            border-left-color: #c41e3a;
+        }
+
+        .map-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #map {
+            flex: 1;
+            width: 100%;
+        }
+
+        .map-footer {
+            padding: 15px;
+            background: #f9f9f9;
+            border-top: 1px solid #ddd;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        .status-online {
+            background: #27ae60;
+        }
+
+        .status-offline {
+            background: #f39c12;
+        }
+
+        .test-data {
+            background: #ecf0f1;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            margin-top: 10px;
+            font-family: monospace;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .btn-load {
+            background: #c41e3a;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-top: 10px;
+            width: 100%;
+        }
+
+        .btn-load:hover {
+            background: #a01830;
+        }
+
+        .legend {
+            font-size: 11px;
+        }
+
+        .legend-item {
+            margin-bottom: 8px;
+            padding: 5px;
+            background: white;
+            border-radius: 3px;
+        }
+
+        .legend-icon {
+            font-size: 16px;
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🗺️ Test - Visor de Mapas APP Emergencia</h1>
+        <p>Verificación de Fase 1: Mapeo Básico</p>
+    </div>
+
+    <div class="container">
+        <div class="content">
+            <!-- Sidebar -->
+            <div class="sidebar">
+                <h3>📊 Datos Cargados</h3>
+                <div class="sidebar-section">
+                    <div id="emergenciasCount" class="sidebar-item">🔴 Emergencias: 0</div>
+                    <div id="equiposCount" class="sidebar-item">🚗 Equipos: 0</div>
+                    <div id="beneficiariesCount" class="sidebar-item">👥 Beneficiarios: 0</div>
+                </div>
+
+                <h3>🔧 Controles</h3>
+                <div class="sidebar-section">
+                    <button class="btn-load" onclick="loadTestData()">📥 Cargar Datos de Test</button>
+                    <button class="btn-load" onclick="clearMap()">🗑️ Limpiar Mapa</button>
+                    <button class="btn-load" onclick="testGPS()">📍 Probar GPS</button>
+                </div>
+
+                <h3>🎨 Leyenda</h3>
+                <div class="legend">
+                    <div class="legend-item">
+                        <span class="legend-icon">🔴</span>
+                        <strong>Crítico</strong>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-icon">🟠</span>
+                        <strong>Alto</strong>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-icon">🟡</span>
+                        <strong>Medio</strong>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-icon">🟢</span>
+                        <strong>Bajo</strong>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-icon">🚑</span>
+                        <strong>Ambulancia</strong>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-icon">🚚</span>
+                        <strong>Camión</strong>
+                    </div>
+                </div>
+
+                <h3>📝 Log</h3>
+                <div class="test-data" id="logBox"></div>
+            </div>
+
+            <!-- Mapa -->
+            <div class="map-section">
+                <div id="map"></div>
+                <div class="map-footer">
+                    <span class="status-indicator status-online"></span>
+                    <span id="statusText">Online</span>
+                    • <span id="coordsText">Posición: -31.82, -71.17</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet-easybutton@2.4.0/dist/easy-button.js"></script>
+
+    <script src="gis-config.js"></script>
+    <script src="modules/map-viewer.js"></script>
+
+    <script>
+        let logMessages = [];
+
+        function log(msg) {
+            const timestamp = new Date().toLocaleTimeString('es-CL');
+            logMessages.unshift(`[${timestamp}] ${msg}`);
+            logMessages = logMessages.slice(0, 20); // Últimos 20
+
+            const logBox = document.getElementById('logBox');
+            logBox.innerHTML = logMessages.map(m => `<div>${m}</div>`).join('');
+        }
+
+        // Inicializar mapa
+        function init() {
+            log('🚀 Inicializando...');
+
+            try {
+                const mapViewer = initMapViewer();
+                window.mapViewerInstance = mapViewer;
+                log('✅ MapViewer inicializado');
+
+                updateStatus();
+
+                // Escuchar selección de features
+                window.addEventListener('mapFeatureSelected', (e) => {
+                    const { type, feature } = e.detail;
+                    log(`🎯 Seleccionado: ${type} - ${feature.nombre || feature.tipo}`);
+                });
+
+            } catch (error) {
+                log(`❌ Error: ${error.message}`);
+                console.error(error);
+            }
+        }
+
+        function loadTestData() {
+            log('📥 Cargando datos de test...');
+
+            // Datos de test
+            const emergenciasTest = [
+                { id: '1', nombre: 'Casa García', tipo: 'Incendio', urgencia: 'critico', ubicacion: 'Calle Las Heras', descripcion: 'Incendio en estructura', lat: -31.8215, lon: -71.1722, timestamp: new Date().toISOString() },
+                { id: '2', nombre: 'Sra. López', tipo: 'Accidente', urgencia: 'alto', ubicacion: 'Av. Principal', descripcion: 'Choque de vehículos', lat: -31.8230, lon: -71.1740, timestamp: new Date().toISOString() },
+                { id: '3', nombre: 'Familia Rodríguez', tipo: 'Inundación', urgencia: 'medio', ubicacion: 'Sector Bajo', descripcion: 'Vivienda anegada', lat: -31.8195, lon: -71.1700, timestamp: new Date().toISOString() },
+                { id: '4', nombre: 'Adulto Mayor', tipo: 'Terremoto', urgencia: 'bajo', ubicacion: 'Centro', descripcion: 'Revisión post temblor', lat: -31.8225, lon: -71.1710, timestamp: new Date().toISOString() }
+            ];
+
+            const equiposTest = [
+                { id: 'AM-001', tipo: 'Ambulancia', lider: 'Carlos López', telefono: '+56912345678', estado: 'activo', tarea: 'En camino a incendio', personal: '2', lat: -31.8220, lon: -71.1730 },
+                { id: 'CT-002', tipo: 'Camión', lider: 'Juan Silva', telefono: '+56987654321', estado: 'activo', tarea: 'Distribución de agua', personal: '3', lat: -31.8210, lon: -71.1715 },
+                { id: 'GR-003', tipo: 'Grupo Rescate', lider: 'María González', telefono: '+56909876543', estado: 'activo', tarea: 'Búsqueda y rescate', personal: '5', lat: -31.8205, lon: -71.1735 }
+            ];
+
+            localStorage.setItem('emergencias', JSON.stringify(emergenciasTest));
+            localStorage.setItem('equipos', JSON.stringify(equiposTest));
+
+            window.mapViewerInstance.renderEmergencias(emergenciasTest);
+            window.mapViewerInstance.renderEquipos(equiposTest);
+
+            updateCounts();
+            log(`✅ ${emergenciasTest.length} emergencias + ${equiposTest.length} equipos cargados`);
+        }
+
+        function updateCounts() {
+            const emergencias = JSON.parse(localStorage.getItem('emergencias') || '[]');
+            const equipos = JSON.parse(localStorage.getItem('equipos') || '[]');
+            const beneficiaries = JSON.parse(localStorage.getItem('beneficiaries') || '[]');
+
+            document.getElementById('emergenciasCount').textContent = `🔴 Emergencias: ${emergencias.length}`;
+            document.getElementById('equiposCount').textContent = `🚗 Equipos: ${equipos.length}`;
+            document.getElementById('beneficiariesCount').textContent = `👥 Beneficiarios: ${beneficiaries.length}`;
+        }
+
+        function updateStatus() {
+            const online = navigator.onLine;
+            const status = online ? 'Online' : 'Offline';
+            const indicator = document.querySelector('.status-indicator');
+
+            document.getElementById('statusText').textContent = status;
+            indicator.className = `status-indicator ${online ? 'status-online' : 'status-offline'}`;
+        }
+
+        function clearMap() {
+            if (window.mapViewerInstance) {
+                window.mapViewerInstance.renderEmergencias([]);
+                window.mapViewerInstance.renderEquipos([]);
+                localStorage.removeItem('emergencias');
+                localStorage.removeItem('equipos');
+                updateCounts();
+                log('🗑️ Mapa limpiado');
+            }
+        }
+
+        function testGPS() {
+            log('📍 Solicitando GPS...');
+
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                        const { latitude, longitude, accuracy } = pos.coords;
+                        log(`✅ GPS: ${latitude.toFixed(4)}, ${longitude.toFixed(4)} (±${accuracy.toFixed(0)}m)`);
+
+                        if (window.mapViewerInstance) {
+                            window.mapViewerInstance.zoomTo(latitude, longitude, 15);
+                        }
+                    },
+                    (error) => {
+                        log(`⚠️ GPS error: ${error.message}`);
+                    }
+                );
+            } else {
+                log('❌ GPS no disponible en este navegador');
+            }
+        }
+
+        // Eventos de conectividad
+        window.addEventListener('online', () => {
+            updateStatus();
+            log('🟢 Conexión establecida');
+        });
+
+        window.addEventListener('offline', () => {
+            updateStatus();
+            log('🟡 Conexión perdida (offline)');
+        });
+
+        // Iniciar
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>

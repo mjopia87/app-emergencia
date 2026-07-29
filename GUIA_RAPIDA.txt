@@ -1,0 +1,176 @@
+═══════════════════════════════════════════════════════════════
+  APP EMERGENCIA ILLAPEL 2026 - GUÍA RÁPIDA
+═══════════════════════════════════════════════════════════════
+
+🚀 INICIO RÁPIDO
+────────────────────────────────────────────────────────────────
+1. Abre index.html en tu navegador
+2. La app se sincroniza automáticamente (sin conexión funciona igual)
+3. Comienza a registrar información
+
+📊 DASHBOARD (Primera pantalla)
+────────────────────────────────────────────────────────────────
+• Ver resumen de todo en un vistazo
+• Indicadores de:
+  - Cuántos beneficiarios has registrado
+  - Cuántos items hay en el acopio
+  - Cuántos equipos están activos
+  - Cuántas emergencias abiertas
+• Alertas automáticas de:
+  - Items con stock bajo
+  - Beneficiarios en crisis
+  - Emergencias sin resolver
+
+📦 CENTRO DE ACOPIO
+────────────────────────────────────────────────────────────────
+AGREGAR ITEM NUEVO:
+1. Click "+ Nuevo Item"
+2. Completa:
+   - Nombre (ej: "Alimento para niños")
+   - Categoría (Alimentos, Agua, Medicinas, Ropa, Higiene, Otro)
+   - Cantidad en Stock (cuánto hay ahora)
+   - Mínimo Requerido (alerta si baja de esto)
+   - Unidad (Unidades, Kilos, Litros, Cajas, Bolsas)
+   - Notas (opcional)
+3. Click Guardar
+
+TABLA DE EGRESOS:
+- Registra cada vez que se entrega un recurso a beneficiarios
+- El sistema te avisa si algo está crítico
+
+👥 BENEFICIARIOS
+────────────────────────────────────────────────────────────────
+NUEVO BENEFICIARIO:
+1. Click "+ Nuevo Beneficiario"
+2. Información básica:
+   - Nombre completo
+   - Teléfono de contacto
+   - Sector donde vive
+   - Urgencia: 🔴Crítico / 🟠Alto / 🟡Medio / 🟢Bajo
+   - Tipo asistencia requerida
+   - Descripción del problema
+   - Cuántas personas (familia)
+3. Guardar
+
+FILTROS:
+- Todos (ver todas las personas)
+- Crítico (casos más urgentes)
+- Alto, Medio, Bajo (según severidad)
+
+📞 EMERGENCIAS
+────────────────────────────────────────────────────────────────
+REGISTRAR LLAMADA/EMERGENCIA:
+1. Click "+ Nueva Emergencia"
+2. Rellenar:
+   - Nombre de quien llamó
+   - Teléfono
+   - Tipo: Terremoto / Incendio / Inundación / Accidente / Otro
+   - Urgencia: 🔴Crítico a 🟢Bajo
+   - Ubicación exacta
+   - Descripción del problema
+   - Estado: Abierta / En Seguimiento / Resuelta
+3. Guardar
+
+SEGUIMIENTO:
+- Actualiza el estado según avance
+- "Abierta" = sin atender
+- "En Seguimiento" = ya está siendo atendida
+- "Resuelta" = problema solucionado
+
+🚗 EQUIPOS EN TERRENO
+────────────────────────────────────────────────────────────────
+NUEVO EQUIPO:
+1. Click "+ Nuevo Equipo"
+2. Información:
+   - Tipo: Ambulancia / Camión / Grupo Rescate / Personal Médico / Voluntarios
+   - Identificador/Patente
+   - Nombre líder/jefe de grupo
+   - Teléfono de contacto
+   - Sector asignado
+   - Estado: Activo / Inactivo / Mantenimiento
+   - Tarea actual (qué está haciendo)
+   - Cantidad de personal
+
+ACTUALIZAR:
+- Haz click en el lápiz para editar tarea
+- Cambia estado si se pone inactivo o en mantenimiento
+
+📝 BITÁCORA (Registro de todo)
+────────────────────────────────────────────────────────────────
+AGREGAR NOTA:
+1. Click "+ Nuevo Registro"
+2. Tipo: Asignación / Seguimiento / Reporte / Cambio / Alerta / Otro
+3. Describe qué pasó (importante para auditoría)
+4. Tu nombre/ID
+5. Guardar
+
+Esto queda registrado con hora y fecha para referencias posteriores.
+
+📊 REPORTES
+────────────────────────────────────────────────────────────────
+Se generan automáticamente:
+- Tabla de urgencias (cuántos críticos, altos, etc)
+- Por sectores (dónde hay más problemas)
+- Tipo de ayuda (cuántos necesitan alimentos, medicinas, etc)
+
+💾 COPIAS DE SEGURIDAD
+────────────────────────────────────────────────────────────────
+EXPORTAR (Backup):
+- Click "Exportar" (esquina superior derecha)
+- Guarda un archivo JSON con TODO
+- Haz esto diariamente
+
+IMPORTAR:
+- Click "Importar"
+- Selecciona archivo JSON guardado
+- Útil para sincronizar datos entre dispositivos
+
+⚠️ SITUACIONES COMUNES
+────────────────────────────────────────────────────────────────
+¿Sin internet?
+→ Funciona normal igual, se sincroniza automáticamente
+
+¿Perdí datos?
+→ Si exportaste (backup), click "Importar" y selecciona el archivo
+
+¿Necesito borrar todo?
+→ Click "Limpiar" (requiere 2 confirmaciones, ¡cuidado!)
+
+¿La app se ve rara?
+→ Actualiza el navegador (F5 o Cmd+R)
+
+🔑 ATAJOS DE TECLADO
+────────────────────────────────────────────────────────────────
+ESC - Cerrar cualquier ventana emergente
+Tab - Navegar entre campos
+Enter - Guardar formulario
+
+✅ CHECKLIST DIARIO
+────────────────────────────────────────────────────────────────
+☐ Revisar Dashboard al comenzar
+☐ Registrar nuevas emergencias
+☐ Actualizar estado de equipos
+☐ Revisar stock de acopio
+☐ Hacer seguimiento a beneficiarios críticos
+☐ Registrar en Bitácora cambios importantes
+☐ Exportar datos al final del día (BACKUP)
+
+📱 INFORMACIÓN DE ESTATUS
+────────────────────────────────────────────────────────────────
+Esquina inferior izquierda:
+🟢 Online = Conectado (datos se enviarían si hubiera servidor)
+🟡 Offline = Sin conexión (pero la app funciona igual)
+
+💡 TIPS ÚTILES
+────────────────────────────────────────────────────────────────
+1. Llena SIEMPRE el campo obligatorio (*) para poder guardar
+2. USA descripciones claras y detalladas
+3. Actualiza el estado de emergencias frecuentemente
+4. CUIDADO: El botón "Limpiar" borra TODO sin recuperación
+5. Comparte el backup (JSON exportado) con otro operario
+6. La Bitácora es tu amiga para auditoría después
+
+═══════════════════════════════════════════════════════════════
+Versión 1.0 - Emergencia Illapel Julio 2026
+Para preguntas: contacta al coordinador
+═══════════════════════════════════════════════════════════════

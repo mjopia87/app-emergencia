@@ -1,0 +1,8 @@
+name = "app-emergencia"
+type = "javascript"
+pages_build_wasm_module = false
+
+[env.production]
+routes = [
+  { pattern = "app-emergencia.pages.dev", zone_name = "pages.dev" }
+]

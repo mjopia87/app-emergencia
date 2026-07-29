@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>APP Emergencia Illapel - Julio 2026</title>
+    <meta name="theme-color" content="#c41e3a">
+    <link rel="manifest" href="manifest.json">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #c41e3a;
+            --primary-dark: #a01830;
+            --success: #27ae60;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+            --info: #3498db;
+            --bg: #ecf0f1;
+            --text: #2c3e50;
+            --border: #bdc3c7;
+            --shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        .login-overlay {
+            position: fixed;
+            width: 100%;
+            height: 100vh;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .login-overlay.hidden {
+            display: none;
+        }
+
+        .login-box {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            width: 90%;
+            max-width: 400px;
+        }
+
+        .login-title {
+            font-size: 28px;
+            text-align: center;
+            color: var(--primary);
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+
+        .login-form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .login-form input, .login-form label {
+            font-size: 14px;
+        }
+
+        .login-form input {
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 5px;
+        }
+
+        .login-form input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(196, 30, 58, 0.1);
+        }
+
+        .login-btn {
+            padding: 12px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .login-btn:hover {
+            background: var(--primary-dark);
+        }
+
+        .login-message {
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 13px;
+            text-align: center;
+            display: none;
+        }
+
+        .login-message.show {
+            display: block;
+        }
+
+        .login-message.success {
+            background: #d5f4e6;
+            color: var(--success);
+        }
+
+        .login-message.error {
+            background: #fadbd8;
+            color: var(--danger);
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+
+        .sidebar {
+            width: 250px;
+            background: var(--primary);
+            color: white;
+            padding: 20px;
+            overflow-y: auto;
+            position: fixed;
+            height: 100vh;
+            left: 0;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid rgba(255,255,255,0.3);
+            text-align: center;
+        }
+
+        .nav-item {
+            padding: 12px 15px;
+            margin: 8px 0;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+
+        .nav-item:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .nav-item.active {
+            background: rgba(255,255,255,0.3);
+            font-weight: bold;
+        }
+
+        .status-bar {
+            margin-top: auto;
+            padding-top: 20px;
+            border-top: 2px solid rgba(255,255,255,0.3);
+            font-size: 11px;
+        }
+
+        .user-display {
+            background: rgba(255,255,255,0.1);
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            font-size: 12px;
+            word-break: break-word;
+        }
+
+        .logout-btn {
+            background: rgba(255,255,255,0.2);
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            text-align: center;
+            font-size: 12px;
+            margin-top: 10px;
+            transition: all 0.3s;
+        }
+
+        .logout-btn:hover {
+            background: var(--danger);
+        }
+
+        .main-content {
+            margin-left: 250px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        .header {
+            background: white;
+            padding: 20px 30px;
+            box-shadow: var(--shadow);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn-secondary {
+            background: var(--border);
+            color: var(--text);
+        }
+
+        .btn-secondary:hover {
+            background: #a8aeb5;
+        }
+
+        .btn-small {
+            padding: 6px 10px;
+            font-size: 12px;
+        }
+
+        .content-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 30px;
+        }
+
+        .module {
+            display: none;
+        }
+
+        .module.active {
+            display: block;
+        }
+
+        .card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--primary);
+            margin-bottom: 15px;
+            border-bottom: 2px solid var(--bg);
+            padding-bottom: 10px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-box {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 32px;
+            font-weight: bold;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            font-family: inherit;
+            font-size: 14px;
+        }
+
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(196, 30, 58, 0.1);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        th {
+            background: var(--bg);
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid var(--border);
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid var(--bg);
+        }
+
+        tr:hover {
+            background: rgba(196, 30, 58, 0.05);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .badge-danger {
+            background: #fadbd8;
+            color: var(--danger);
+        }
+
+        .badge-warning {
+            background: #fdebd0;
+            color: var(--warning);
+        }
+
+        .badge-success {
+            background: #d5f4e6;
+            color: var(--success);
+        }
+
+        .badge-info {
+            background: #d6eaf8;
+            color: var(--info);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.6);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+
+        .modal-header {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: var(--primary);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .modal-close {
+            font-size: 24px;
+            cursor: pointer;
+            background: none;
+            border: none;
+            color: var(--text);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #95a5a6;
+        }
+
+        .alert {
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+            border-left: 4px solid;
+        }
+
+        .alert-success {
+            background: #d5f4e6;
+            border-color: var(--success);
+            color: var(--success);
+        }
+
+        .alert-warning {
+            background: #fdebd0;
+            border-color: var(--warning);
+            color: var(--warning);
+        }
+
+        .alert-danger {
+            background: #fadbd8;
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+
+        .text-muted {
+            color: #95a5a6;
+            font-size: 12px;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 100%;
+                height: auto;
+                position: relative;
+                padding: 15px;
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .container {
+                flex-direction: column;
+            }
+
+            .header {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- LOGIN -->
+    <div class="login-overlay" id="loginOverlay">
+        <div class="login-box">
+            <div class="login-title">🚨 APP Emergencia</div>
+            <form class="login-form" onsubmit="handleLogin(event)">
+                <div>
+                    <label>Usuario (Nombre y Apellido)</label>
+                    <input type="text" id="usuarioInput" placeholder="Ej: Juan Pérez" required>
+                </div>
+                <div>
+                    <label>Contraseña (RUT)</label>
+                    <input type="password" id="rutInput" placeholder="Ej: 12345678-9" required>
+                </div>
+                <button type="submit" class="login-btn">Ingresar</button>
+                <div id="loginMsg" class="login-message"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- APP -->
+    <div class="container" id="mainContainer" style="display:none;">
+        <div class="sidebar">
+            <div class="logo">🚨 EMERGENCIA</div>
+            <div class="nav-item active" onclick="switchModule('dashboard')">📊 Dashboard</div>
+            <div class="nav-item" onclick="switchModule('acopio')">📦 Acopio</div>
+            <div class="nav-item" onclick="switchModule('beneficiarios')">👥 Beneficiarios</div>
+            <div class="nav-item" onclick="switchModule('emergencias')">📞 Emergencias</div>
+            <div class="nav-item" onclick="switchModule('equipos')">🚗 Equipos</div>
+            <div class="nav-item" onclick="switchModule('bitacora')">📝 Bitácora</div>
+
+            <div class="status-bar">
+                <div class="user-display" id="userDisplay">Usuario</div>
+                <div class="logout-btn" onclick="handleLogout()">🔓 Cerrar Sesión</div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="header">
+                <div class="header-title" id="pageTitle">Dashboard</div>
+                <div class="header-actions">
+                    <button class="btn btn-secondary btn-small" onclick="exportData()">📥 Exportar</button>
+                    <button class="btn btn-secondary btn-small" onclick="importData()">📤 Importar</button>
+                </div>
+            </div>
+
+            <div class="content-area">
+                <!-- DASHBOARD -->
+                <div class="module active" id="dashboard">
+                    <div class="stats-grid">
+                        <div class="stat-box">
+                            <div class="stat-number" id="statBenef">0</div>
+                            <div class="stat-label">Beneficiarios</div>
+                        </div>
+                        <div class="stat-box" style="background: linear-gradient(135deg, #27ae60, #1e8449);">
+                            <div class="stat-number" id="statAcopio">0</div>
+                            <div class="stat-label">Items Acopio</div>
+                        </div>
+                        <div class="stat-box" style="background: linear-gradient(135deg, #f39c12, #d68910);">
+                            <div class="stat-number" id="statEquipos">0</div>
+                            <div class="stat-label">Equipos</div>
+                        </div>
+                        <div class="stat-box" style="background: linear-gradient(135deg, #3498db, #2980b9);">
+                            <div class="stat-number" id="statEmerg">0</div>
+                            <div class="stat-label">Emergencias</div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-title">Alertas</div>
+                        <div id="alertsContainer"><p class="empty-state">Sin alertas</p></div>
+                    </div>
+                </div>
+
+                <!-- ACOPIO -->
+                <div class="module" id="acopio">
+                    <div class="card">
+                        <div class="card-title">Centro de Acopio</div>
+                        <button class="btn btn-primary" onclick="openModal('acopioModal')">+ Nuevo Item</button>
+                        <div class="table-responsive" style="margin-top:15px;">
+                            <table id="acopioTable">
+                                <thead><tr><th>Artículo</th><th>Stock</th><th>Mín</th><th>Acciones</th></tr></thead>
+                                <tbody id="acopioBody"><tr><td colspan="4" class="empty-state">Sin items</td></tr></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BENEFICIARIOS -->
+                <div class="module" id="beneficiarios">
+                    <div class="card">
+                        <div class="card-title">Beneficiarios</div>
+                        <button class="btn btn-primary" onclick="openModal('benModal')">+ Nuevo</button>
+                        <div class="table-responsive" style="margin-top:15px;">
+                            <table id="benTable">
+                                <thead><tr><th>Nombre</th><th>Sector</th><th>Urgencia</th><th>Acciones</th></tr></thead>
+                                <tbody id="benBody"><tr><td colspan="4" class="empty-state">Sin registros</td></tr></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- EMERGENCIAS -->
+                <div class="module" id="emergencias">
+                    <div class="card">
+                        <div class="card-title">Emergencias</div>
+                        <button class="btn btn-primary" onclick="openModal('emgModal')">+ Nueva</button>
+                        <div class="table-responsive" style="margin-top:15px;">
+                            <table id="emgTable">
+                                <thead><tr><th>Contacto</th><th>Tipo</th><th>Ubicación</th><th>Estado</th><th>Acciones</th></tr></thead>
+                                <tbody id="emgBody"><tr><td colspan="5" class="empty-state">Sin registros</td></tr></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- EQUIPOS -->
+                <div class="module" id="equipos">
+                    <div class="card">
+                        <div class="card-title">Equipos en Terreno</div>
+                        <button class="btn btn-primary" onclick="openModal('eqModal')">+ Nuevo Equipo</button>
+                        <div class="table-responsive" style="margin-top:15px;">
+                            <table id="eqTable">
+                                <thead><tr><th>Tipo</th><th>Identificador</th><th>Líder</th><th>Estado</th><th>Acciones</th></tr></thead>
+                                <tbody id="eqBody"><tr><td colspan="5" class="empty-state">Sin registros</td></tr></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BITÁCORA -->
+                <div class="module" id="bitacora">
+                    <div class="card">
+                        <div class="card-title">Bitácora</div>
+                        <button class="btn btn-primary" onclick="openModal('bitModal')">+ Nuevo Registro</button>
+                        <div class="table-responsive" style="margin-top:15px;">
+                            <table id="bitTable">
+                                <thead><tr><th>Fecha/Hora</th><th>Tipo</th><th>Descripción</th><th>Usuario</th></tr></thead>
+                                <tbody id="bitBody"><tr><td colspan="4" class="empty-state">Sin registros</td></tr></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODALS -->
+    <div class="modal" id="acopioModal">
+        <div class="modal-content">
+            <div class="modal-header"><span>Nuevo Item Acopio</span><button class="modal-close" onclick="closeModal('acopioModal')">×</button></div>
+            <form onsubmit="saveAcopio(event)">
+                <div class="form-group"><label>Nombre *</label><input type="text" id="acopioNombre" required></div>
+                <div class="form-row">
+                    <div class="form-group"><label>Stock *</label><input type="number" id="acopioStock" min="0" required></div>
+                    <div class="form-group"><label>Mínimo *</label><input type="number" id="acopioMin" min="0" required></div>
+                </div>
+                <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('acopioModal')">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="benModal">
+        <div class="modal-content">
+            <div class="modal-header"><span>Nuevo Beneficiario</span><button class="modal-close" onclick="closeModal('benModal')">×</button></div>
+            <form onsubmit="saveBeneficiario(event)">
+                <div class="form-group"><label>Nombre *</label><input type="text" id="benNombre" required></div>
+                <div class="form-row">
+                    <div class="form-group"><label>Sector *</label><input type="text" id="benSector" required></div>
+                    <div class="form-group"><label>Urgencia *</label><select id="benUrgencia" required><option value="critico">Crítico</option><option value="alto">Alto</option><option value="medio">Medio</option><option value="bajo">Bajo</option></select></div>
+                </div>
+                <div class="form-group"><label>Descripción *</label><textarea id="benDesc" required></textarea></div>
+                <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('benModal')">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="emgModal">
+        <div class="modal-content">
+            <div class="modal-header"><span>Nueva Emergencia</span><button class="modal-close" onclick="closeModal('emgModal')">×</button></div>
+            <form onsubmit="saveEmergencia(event)">
+                <div class="form-group"><label>Contacto *</label><input type="text" id="emgContacto" required></div>
+                <div class="form-row">
+                    <div class="form-group"><label>Tipo *</label><select id="emgTipo" required><option>Terremoto</option><option>Incendio</option><option>Inundación</option><option>Accidente</option><option>Otro</option></select></div>
+                    <div class="form-group"><label>Ubicación *</label><input type="text" id="emgUbicacion" required></div>
+                </div>
+                <div class="form-group"><label>Descripción *</label><textarea id="emgDesc" required></textarea></div>
+                <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('emgModal')">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="eqModal">
+        <div class="modal-content">
+            <div class="modal-header"><span>Nuevo Equipo</span><button class="modal-close" onclick="closeModal('eqModal')">×</button></div>
+            <form onsubmit="saveEquipo(event)">
+                <div class="form-row">
+                    <div class="form-group"><label>Tipo *</label><input type="text" id="eqTipo" required></div>
+                    <div class="form-group"><label>Identificador *</label><input type="text" id="eqId" required></div>
+                </div>
+                <div class="form-group"><label>Líder *</label><input type="text" id="eqLider" required></div>
+                <div class="form-group"><label>Sector *</label><input type="text" id="eqSector" required></div>
+                <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('eqModal')">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="bitModal">
+        <div class="modal-content">
+            <div class="modal-header"><span>Nuevo Registro</span><button class="modal-close" onclick="closeModal('bitModal')">×</button></div>
+            <form onsubmit="saveBitacora(event)">
+                <div class="form-group"><label>Tipo *</label><input type="text" id="bitTipo" required></div>
+                <div class="form-group"><label>Descripción *</label><textarea id="bitDesc" required></textarea></div>
+                <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('bitModal')">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // ======= LOGIN =======
+        const USERS_KEY = 'emergencia_users';
+        const CURRENT_USER_KEY = 'emergencia_user';
+        let currentUser = null;
+
+        function handleLogin(e) {
+            e.preventDefault();
+            const usuario = document.getElementById('usuarioInput').value.trim();
+            const rut = document.getElementById('rutInput').value.trim();
+
+            if (!usuario || !rut) return;
+
+            const users = JSON.parse(localStorage.getItem(USERS_KEY) || '{}');
+
+            if (usuario in users) {
+                if (users[usuario] === rut) {
+                    loginOk(usuario);
+                } else {
+                    showMsg('RUT incorrecto', 'error');
+                }
+            } else {
+                users[usuario] = rut;
+                localStorage.setItem(USERS_KEY, JSON.stringify(users));
+                showMsg('✓ Usuario creado', 'success');
+                setTimeout(() => loginOk(usuario), 500);
+            }
+        }
+
+        function loginOk(usuario) {
+            currentUser = usuario;
+            localStorage.setItem(CURRENT_USER_KEY, usuario);
+            document.getElementById('loginOverlay').classList.add('hidden');
+            document.getElementById('mainContainer').style.display = 'flex';
+            document.getElementById('userDisplay').textContent = '👤 ' + usuario;
+        }
+
+        function handleLogout() {
+            if (!confirm('¿Cerrar sesión?')) return;
+            currentUser = null;
+            localStorage.removeItem(CURRENT_USER_KEY);
+            document.getElementById('loginOverlay').classList.remove('hidden');
+            document.getElementById('mainContainer').style.display = 'none';
+            document.getElementById('usuarioInput').value = '';
+            document.getElementById('rutInput').value = '';
+            document.getElementById('usuarioInput').focus();
+        }
+
+        function showMsg(msg, tipo) {
+            const el = document.getElementById('loginMsg');
+            el.textContent = msg;
+            el.className = 'login-message show ' + tipo;
+            setTimeout(() => el.classList.remove('show'), 3000);
+        }
+
+        // ======= DATA =======
+        const DB = {acopio:[], beneficiarios:[], emergencias:[], equipos:[], bitacora:[]};
+        const DB_KEY = 'emergencia_db';
+
+        function loadDB() {
+            const data = localStorage.getItem(DB_KEY);
+            if (data) Object.assign(DB, JSON.parse(data));
+        }
+
+        function saveDB() {
+            localStorage.setItem(DB_KEY, JSON.stringify(DB));
+        }
+
+        // ======= UI =======
+        function switchModule(mod) {
+            document.querySelectorAll('.module').forEach(m => m.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.getElementById(mod).classList.add('active');
+            event.target.classList.add('active');
+
+            const titles = {dashboard:'📊 Dashboard', acopio:'📦 Acopio', beneficiarios:'👥 Beneficiarios', emergencias:'📞 Emergencias', equipos:'🚗 Equipos', bitacora:'📝 Bitácora'};
+            document.getElementById('pageTitle').textContent = titles[mod];
+
+            if (mod === 'dashboard') refreshDash();
+            if (mod === 'acopio') refreshAcopio();
+            if (mod === 'beneficiarios') refreshBen();
+            if (mod === 'emergencias') refreshEmg();
+            if (mod === 'equipos') refreshEq();
+            if (mod === 'bitacora') refreshBit();
+        }
+
+        function openModal(id) {document.getElementById(id).classList.add('active');}
+        function closeModal(id) {document.getElementById(id).classList.remove('active');}
+
+        // ======= ACOPIO =======
+        function saveAcopio(e) {
+            e.preventDefault();
+            DB.acopio.push({
+                id: Date.now(),
+                nombre: document.getElementById('acopioNombre').value,
+                stock: parseInt(document.getElementById('acopioStock').value),
+                minimo: parseInt(document.getElementById('acopioMin').value),
+                fecha: new Date().toLocaleDateString()
+            });
+            saveDB();
+            closeModal('acopioModal');
+            refreshAcopio();
+        }
+
+        function refreshAcopio() {
+            const tbody = document.getElementById('acopioBody');
+            if (DB.acopio.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="empty-state">Sin items</td></tr>';
+                return;
+            }
+            tbody.innerHTML = DB.acopio.map(a => `<tr><td>${a.nombre}</td><td>${a.stock}</td><td>${a.minimo}</td><td><button class="btn btn-primary btn-small" onclick="deleteItem('acopio', ${a.id})">🗑️</button></td></tr>`).join('');
+        }
+
+        // ======= BENEFICIARIOS =======
+        function saveBeneficiario(e) {
+            e.preventDefault();
+            DB.beneficiarios.push({
+                id: Date.now(),
+                nombre: document.getElementById('benNombre').value,
+                sector: document.getElementById('benSector').value,
+                urgencia: document.getElementById('benUrgencia').value,
+                descripcion: document.getElementById('benDesc').value,
+                fecha: new Date().toLocaleDateString()
+            });
+            saveDB();
+            closeModal('benModal');
+            refreshBen();
+        }
+
+        function refreshBen() {
+            const tbody = document.getElementById('benBody');
+            if (DB.beneficiarios.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="empty-state">Sin registros</td></tr>';
+                return;
+            }
+            tbody.innerHTML = DB.beneficiarios.map(b => `<tr><td>${b.nombre}</td><td>${b.sector}</td><td><span class="badge badge-${b.urgencia==='critico'?'danger':b.urgencia==='alto'?'warning':'info'}">${b.urgencia}</span></td><td><button class="btn btn-primary btn-small" onclick="deleteItem('beneficiarios', ${b.id})">🗑️</button></td></tr>`).join('');
+        }
+
+        // ======= EMERGENCIAS =======
+        function saveEmergencia(e) {
+            e.preventDefault();
+            DB.emergencias.push({
+                id: Date.now(),
+                contacto: document.getElementById('emgContacto').value,
+                tipo: document.getElementById('emgTipo').value,
+                ubicacion: document.getElementById('emgUbicacion').value,
+                descripcion: document.getElementById('emgDesc').value,
+                fecha: new Date().toLocaleDateString()
+            });
+            saveDB();
+            closeModal('emgModal');
+            refreshEmg();
+        }
+
+        function refreshEmg() {
+            const tbody = document.getElementById('emgBody');
+            if (DB.emergencias.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="empty-state">Sin registros</td></tr>';
+                return;
+            }
+            tbody.innerHTML = DB.emergencias.map(e => `<tr><td>${e.contacto}</td><td>${e.tipo}</td><td>${e.ubicacion}</td><td><span class="badge badge-danger">Abierta</span></td><td><button class="btn btn-primary btn-small" onclick="deleteItem('emergencias', ${e.id})">🗑️</button></td></tr>`).join('');
+        }
+
+        // ======= EQUIPOS =======
+        function saveEquipo(e) {
+            e.preventDefault();
+            DB.equipos.push({
+                id: Date.now(),
+                tipo: document.getElementById('eqTipo').value,
+                identificador: document.getElementById('eqId').value,
+                lider: document.getElementById('eqLider').value,
+                sector: document.getElementById('eqSector').value,
+                fecha: new Date().toLocaleDateString()
+            });
+            saveDB();
+            closeModal('eqModal');
+            refreshEq();
+        }
+
+        function refreshEq() {
+            const tbody = document.getElementById('eqBody');
+            if (DB.equipos.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="empty-state">Sin registros</td></tr>';
+                return;
+            }
+            tbody.innerHTML = DB.equipos.map(e => `<tr><td>${e.tipo}</td><td>${e.identificador}</td><td>${e.lider}</td><td><span class="badge badge-success">Activo</span></td><td><button class="btn btn-primary btn-small" onclick="deleteItem('equipos', ${e.id})">🗑️</button></td></tr>`).join('');
+        }
+
+        // ======= BITÁCORA =======
+        function saveBitacora(e) {
+            e.preventDefault();
+            DB.bitacora.push({
+                id: Date.now(),
+                tipo: document.getElementById('bitTipo').value,
+                descripcion: document.getElementById('bitDesc').value,
+                usuario: currentUser,
+                fecha: new Date().toLocaleString()
+            });
+            saveDB();
+            closeModal('bitModal');
+            refreshBit();
+        }
+
+        function refreshBit() {
+            const tbody = document.getElementById('bitBody');
+            const sorted = [...DB.bitacora].sort((a,b) => new Date(b.fecha) - new Date(a.fecha));
+            if (sorted.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="empty-state">Sin registros</td></tr>';
+                return;
+            }
+            tbody.innerHTML = sorted.slice(0, 30).map(b => `<tr><td>${b.fecha}</td><td>${b.tipo}</td><td>${b.descripcion}</td><td>${b.usuario}</td></tr>`).join('');
+        }
+
+        // ======= DASHBOARD =======
+        function refreshDash() {
+            document.getElementById('statBenef').textContent = DB.beneficiarios.length;
+            document.getElementById('statAcopio').textContent = DB.acopio.length;
+            document.getElementById('statEquipos').textContent = DB.equipos.length;
+            document.getElementById('statEmerg').textContent = DB.emergencias.length;
+
+            let alerts = '';
+            if (DB.acopio.some(a => a.stock <= a.minimo)) alerts += '<div class="alert alert-warning">⚠️ Items con stock bajo</div>';
+            if (DB.beneficiarios.some(b => b.urgencia === 'critico')) alerts += '<div class="alert alert-danger">🔴 Beneficiarios críticos</div>';
+            if (DB.emergencias.length > 0) alerts += `<div class="alert alert-warning">📢 ${DB.emergencias.length} emergencias abiertas</div>`;
+            document.getElementById('alertsContainer').innerHTML = alerts || '<p class="empty-state">Sin alertas</p>';
+        }
+
+        // ======= UTILS =======
+        function deleteItem(tipo, id) {
+            if (!confirm('¿Eliminar?')) return;
+            DB[tipo] = DB[tipo].filter(x => x.id !== id);
+            saveDB();
+            if (tipo === 'acopio') refreshAcopio();
+            if (tipo === 'beneficiarios') refreshBen();
+            if (tipo === 'emergencias') refreshEmg();
+            if (tipo === 'equipos') refreshEq();
+        }
+
+        function exportData() {
+            const json = JSON.stringify(DB, null, 2);
+            const blob = new Blob([json], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'emergencia_backup.json';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function importData() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = (e) => {
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    try {
+                        Object.assign(DB, JSON.parse(ev.target.result));
+                        saveDB();
+                        alert('Datos importados');
+                        refreshDash();
+                    } catch (err) {
+                        alert('Error: ' + err.message);
+                    }
+                };
+                reader.readAsText(e.target.files[0]);
+            };
+            input.click();
+        }
+
+        // ======= INIT =======
+        loadDB();
+        const saved = localStorage.getItem(CURRENT_USER_KEY);
+        if (saved) {
+            currentUser = saved;
+            document.getElementById('loginOverlay').classList.add('hidden');
+            document.getElementById('mainContainer').style.display = 'flex';
+            document.getElementById('userDisplay').textContent = '👤 ' + saved;
+            refreshDash();
+        } else {
+            document.getElementById('usuarioInput').focus();
+        }
+
+        setInterval(saveDB, 10000);
+    </script>
+</body>
+</html>
