@@ -32,6 +32,7 @@
 
     <!-- Chart.js para gráficos -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
 
     <!-- jsPDF para exportar a PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -353,6 +354,75 @@
         .stat-label {
             font-size: 12px;
             opacity: 0.9;
+        }
+
+        /* REPORTES - dashboard estilo tarjetas planas */
+        .reporte-stats-grid {
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        }
+
+        .stat-box-flat {
+            padding: 18px 20px;
+            border-radius: 12px;
+            text-align: left;
+        }
+
+        .stat-box-flat .stat-number {
+            font-size: 30px;
+            font-weight: 700;
+        }
+
+        .stat-box-flat .stat-label {
+            font-size: 12px;
+            font-weight: 600;
+            opacity: 0.85;
+            margin-top: 2px;
+        }
+
+        .reporte-card {
+            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+            border: 1px solid #eee;
+        }
+
+        .reporte-card .card-title {
+            font-size: 14px;
+            color: #5d6d7e;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .reporte-grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 760px) {
+            .reporte-grid-2 {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .reporte-legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+        }
+
+        .reporte-legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .reporte-legend-value {
+            font-weight: 700;
+            font-size: 15px;
+            color: #2c3e50;
+            margin-right: 4px;
         }
 
         /* FORM */
@@ -995,65 +1065,80 @@
 
                 <!-- REPORTES -->
                 <div id="reportes">
-                    <div class="stats-grid">
-                        <div class="stat-box">
-                            <div class="stat-number" id="statEmerg">0</div>
-                            <div class="stat-label">Requerimientos</div>
+                    <div class="stats-grid reporte-stats-grid">
+                        <div class="stat-box-flat" style="background:#fdecea;">
+                            <div class="stat-number" id="statEmerg" style="color:#c0392b;">0</div>
+                            <div class="stat-label" style="color:#c0392b;">Requerimientos</div>
                         </div>
-                        <div class="stat-box" style="background:linear-gradient(135deg,#27ae60,#1e8449);">
-                            <div class="stat-number" id="statAtendidos">0</div>
-                            <div class="stat-label">✅ Atendidos</div>
+                        <div class="stat-box-flat" style="background:#eafaf1;">
+                            <div class="stat-number" id="statAtendidos" style="color:#1e8449;">0</div>
+                            <div class="stat-label" style="color:#1e8449;">✅ Atendidos</div>
                         </div>
-                        <div class="stat-box" style="background:linear-gradient(135deg,#e67e22,#ca6f1e);">
-                            <div class="stat-number" id="statPendientes">0</div>
-                            <div class="stat-label">⏳ Pendientes</div>
+                        <div class="stat-box-flat" style="background:#fef5e7;">
+                            <div class="stat-number" id="statPendientes" style="color:#b9770e;">0</div>
+                            <div class="stat-label" style="color:#b9770e;">⏳ Pendientes</div>
                         </div>
-                        <div class="stat-box" style="background:linear-gradient(135deg,#3498db,#2980b9);">
-                            <div class="stat-number" id="statBen">0</div>
-                            <div class="stat-label">Beneficiarios</div>
+                        <div class="stat-box-flat" style="background:#eaf2fb;">
+                            <div class="stat-number" id="statBen" style="color:#1f618d;">0</div>
+                            <div class="stat-label" style="color:#1f618d;">Beneficiarios</div>
                         </div>
-                        <div class="stat-box" style="background:linear-gradient(135deg,#8e44ad,#6c3483);">
-                            <div class="stat-number" id="statAcopio">0</div>
-                            <div class="stat-label">Items Acopio</div>
+                        <div class="stat-box-flat" style="background:#f4ecf7;">
+                            <div class="stat-number" id="statAcopio" style="color:#6c3483;">0</div>
+                            <div class="stat-label" style="color:#6c3483;">Items Acopio</div>
                         </div>
-                        <div class="stat-box" style="background:linear-gradient(135deg,#16a085,#117864);">
-                            <div class="stat-number" id="statEquipos">0</div>
-                            <div class="stat-label">Equipos</div>
+                        <div class="stat-box-flat" style="background:#e8f8f5;">
+                            <div class="stat-number" id="statEquipos" style="color:#117864;">0</div>
+                            <div class="stat-label" style="color:#117864;">Equipos</div>
                         </div>
                     </div>
 
-                    <div class="card">
-                        <div class="card-title">📊 Requerimientos por Localidad — Atendidos vs Pendientes</div>
-                        <div style="position:relative;height:280px;">
+                    <div class="card reporte-card">
+                        <div class="card-title">Requerimientos por localidad — atendidos vs pendientes</div>
+                        <div style="position:relative;height:260px;">
                             <canvas id="reporteRequerimientosChart"></canvas>
                         </div>
                     </div>
 
-                    <div class="card">
-                        <div class="card-title">🔴 Urgencias Registradas (Requerimientos + Beneficiarios)</div>
-                        <div style="position:relative;height:220px;max-width:420px;margin:0 auto;">
-                            <canvas id="reporteUrgenciaChart"></canvas>
+                    <div class="reporte-grid-2">
+                        <div class="card reporte-card">
+                            <div class="card-title">Urgencias registradas</div>
+                            <div style="display:flex;gap:16px;align-items:center;">
+                                <div style="position:relative;height:180px;width:180px;flex-shrink:0;">
+                                    <canvas id="reporteUrgenciaChart"></canvas>
+                                </div>
+                                <div id="reporteUrgenciaLegend" style="flex:1;display:flex;flex-direction:column;gap:10px;"></div>
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="card">
-                        <div class="card-title">📦 Centro de Acopio — Existencias y Egresos</div>
-                        <div style="display:grid;grid-template-columns:1.3fr 1fr;gap:20px;align-items:start;">
+                        <div class="card reporte-card">
+                            <div class="card-title">Centro de Acopio — existencias y egresos</div>
                             <div style="position:relative;height:220px;">
                                 <canvas id="reporteAcopioChart"></canvas>
                             </div>
+                        </div>
+                    </div>
+
+                    <div class="reporte-grid-2">
+                        <div class="card reporte-card">
+                            <div class="card-title">Egresos por destino</div>
+                            <div style="display:flex;gap:16px;align-items:center;">
+                                <div style="position:relative;height:180px;width:180px;flex-shrink:0;">
+                                    <canvas id="reporteEgresoLocalidadChart"></canvas>
+                                </div>
+                                <div id="reporteEgresoLocalidadLegend" style="flex:1;display:flex;flex-direction:column;gap:8px;max-height:180px;overflow-y:auto;"></div>
+                            </div>
+                        </div>
+
+                        <div class="card reporte-card">
+                            <div class="card-title">Equipos y móviles desplegados por día</div>
                             <div style="position:relative;height:220px;">
-                                <canvas id="reporteEgresoLocalidadChart"></canvas>
+                                <canvas id="reporteDespliegueChart"></canvas>
                             </div>
                         </div>
                     </div>
 
-                    <div class="card">
-                        <div class="card-title">🚗 Equipos y Móviles Desplegados por Día</div>
-                        <div style="position:relative;height:260px;">
-                            <canvas id="reporteDespliegueChart"></canvas>
-                        </div>
-                        <div id="reporteDespliegueLocalidades" style="font-size:13px;margin-top:12px;"></div>
+                    <div class="card reporte-card">
+                        <div id="reporteDespliegueLocalidades" style="font-size:13px;"></div>
                     </div>
                 </div>
 
@@ -2667,15 +2752,19 @@
             // Ir al punto en el mapa
             switchView('mapa', document.querySelector('[onclick="switchView(\'mapa\', this)"]'));
             setTimeout(() => {
-                if (map) {
-                    map.setView([lat, lon], 16);
-                    // Mostrar popup
+                // El mapa activo es window.mapViewerInstance.map (creado por MapViewer);
+                // la variable local "map" nunca se inicializa en el flujo actual.
+                const liveMap = (window.mapViewerInstance && window.mapViewerInstance.map) || window.map;
+                if (liveMap) {
+                    liveMap.setView([lat, lon], 16);
                     L.popup({closeButton: true})
                         .setLatLng([lat, lon])
                         .setContent(`<strong>📍 ${nombre}</strong>`)
-                        .openOn(map);
+                        .openOn(liveMap);
+                } else {
+                    console.warn('⚠️ Mapa no disponible todavía para centrar en el punto');
                 }
-            }, 100);
+            }, 200);
         }
 
         function verDetallesEmergencia(id) {
@@ -2909,15 +2998,18 @@
         }
 
         function actualizarMapaLocalidades() {
-            // Actualizar marcadores de localidades en el mapa
-            if (!map) return;
+            // Actualizar marcadores de localidades en el mapa.
+            // El mapa activo es window.mapViewerInstance.map (creado por MapViewer);
+            // la variable local "map" nunca se inicializa en el flujo actual.
+            const liveMap = (window.mapViewerInstance && window.mapViewerInstance.map) || window.map;
+            if (!liveMap) return;
 
             // Esta función se llama repetidamente (cada 15s por el polling y tras
             // cada guardado). Sin un layer group propio, cada llamada agregaba
             // marcadores nuevos sin quitar los anteriores, duplicándolos sin
             // control. Se usa un LayerGroup dedicado que se limpia antes de redibujar.
             if (!window.localidadesLayerGroup) {
-                window.localidadesLayerGroup = L.layerGroup().addTo(map);
+                window.localidadesLayerGroup = L.layerGroup().addTo(liveMap);
             }
             window.localidadesLayerGroup.clearLayers();
 
@@ -5292,6 +5384,15 @@
                 return;
             }
 
+            // Registrar el plugin de etiquetas de valor una sola vez, y desactivarlo
+            // por defecto (solo se activa explícitamente en los gráficos de barras).
+            if (typeof ChartDataLabels !== 'undefined' && !window._datalabelsRegistrado) {
+                Chart.register(ChartDataLabels);
+                Chart.defaults.set('plugins.datalabels', { display: false });
+                window._datalabelsRegistrado = true;
+            }
+            const conEtiquetas = typeof ChartDataLabels !== 'undefined';
+
             // ===== Estadísticas generales =====
             const atendidos = DB.emergencias.filter(e => e.estadoAtencion === 'atendido').length;
             const pendientes = DB.emergencias.length - atendidos;
@@ -5325,15 +5426,24 @@
                     data: {
                         labels: localidadesReq,
                         datasets: [
-                            { label: '✅ Atendidos', data: localidadesReq.map(l => porLocalidad[l].atendidos), backgroundColor: '#27ae60' },
-                            { label: '⏳ Pendientes', data: localidadesReq.map(l => porLocalidad[l].pendientes), backgroundColor: '#e67e22' }
+                            { label: 'Atendidos', data: localidadesReq.map(l => porLocalidad[l].atendidos), backgroundColor: '#58d68d', borderRadius: 4 },
+                            { label: 'Pendientes', data: localidadesReq.map(l => porLocalidad[l].pendientes), backgroundColor: '#f5b041', borderRadius: 4 }
                         ]
                     },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
-                        scales: { y: { beginAtZero: true, ticks: { precision: 0 } }, x: { stacked: false } },
-                        plugins: { legend: { position: 'top' } }
+                        scales: {
+                            y: { beginAtZero: true, ticks: { precision: 0 }, grid: { display: false } },
+                            x: { grid: { display: false } }
+                        },
+                        plugins: {
+                            legend: { position: 'top', align: 'end', labels: { boxWidth: 10, usePointStyle: true } },
+                            datalabels: conEtiquetas ? {
+                                display: (ctx) => ctx.dataset.data[ctx.dataIndex] > 0,
+                                anchor: 'end', align: 'top', color: '#5d6d7e', font: { size: 11, weight: '600' }
+                            } : { display: false }
+                        }
                     }
                 });
             }
@@ -5343,6 +5453,8 @@
             [...DB.emergencias, ...DB.beneficiarios].forEach(item => {
                 if (item.urgencia && urgencias.hasOwnProperty(item.urgencia)) urgencias[item.urgencia]++;
             });
+            const urgenciaColores = { critico: '#e74c3c', alto: '#f39c12', medio: '#f1c40f', bajo: '#58d68d' };
+            const urgenciaLabels = { critico: 'Crítico', alto: 'Alto', medio: 'Medio', bajo: 'Bajo' };
 
             if (window.reporteUrgenciaChart && typeof window.reporteUrgenciaChart.destroy === 'function') window.reporteUrgenciaChart.destroy();
             const ctxUrg = document.getElementById('reporteUrgenciaChart');
@@ -5350,18 +5462,31 @@
                 window.reporteUrgenciaChart = new Chart(ctxUrg, {
                     type: 'doughnut',
                     data: {
-                        labels: ['🔴 Crítico', '🟠 Alto', '🟡 Medio', '🟢 Bajo'],
+                        labels: Object.keys(urgenciaLabels).map(k => urgenciaLabels[k]),
                         datasets: [{
-                            data: [urgencias.critico, urgencias.alto, urgencias.medio, urgencias.bajo],
-                            backgroundColor: ['#e74c3c', '#f39c12', '#f1c40f', '#27ae60']
+                            data: Object.keys(urgenciaLabels).map(k => urgencias[k]),
+                            backgroundColor: Object.keys(urgenciaLabels).map(k => urgenciaColores[k]),
+                            borderWidth: 2,
+                            borderColor: '#fff'
                         }]
                     },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
-                        plugins: { legend: { position: 'bottom' } }
+                        cutout: '68%',
+                        plugins: { legend: { display: false }, datalabels: { display: false } }
                     }
                 });
+            }
+            const urgLegendEl = document.getElementById('reporteUrgenciaLegend');
+            if (urgLegendEl) {
+                urgLegendEl.innerHTML = Object.keys(urgenciaLabels).map(k => `
+                    <div class="reporte-legend-item">
+                        <span class="reporte-legend-dot" style="background:${urgenciaColores[k]};"></span>
+                        <span class="reporte-legend-value">${urgencias[k]}</span>
+                        <span style="color:#7f8c8d;">${urgenciaLabels[k]}</span>
+                    </div>
+                `).join('');
             }
 
             // ===== Gráfico 3: Existencias/Egresos de Acopio (compacto) =====
@@ -5385,16 +5510,25 @@
                     data: {
                         labels: itemsAcopio,
                         datasets: [
-                            { label: 'Existencias', data: itemsAcopio.map(i => ingresosPorItem[i] || 0), backgroundColor: '#3498db' },
-                            { label: 'Egresos', data: itemsAcopio.map(i => egresosPorItem[i] || 0), backgroundColor: '#e74c3c' }
+                            { label: 'Existencias', data: itemsAcopio.map(i => ingresosPorItem[i] || 0), backgroundColor: '#85c1e9', borderRadius: 4 },
+                            { label: 'Egresos', data: itemsAcopio.map(i => egresosPorItem[i] || 0), backgroundColor: '#f1948a', borderRadius: 4 }
                         ]
                     },
                     options: {
                         indexAxis: 'y',
                         responsive: true,
                         maintainAspectRatio: false,
-                        scales: { x: { beginAtZero: true, ticks: { precision: 0 } } },
-                        plugins: { legend: { position: 'top' } }
+                        scales: {
+                            x: { beginAtZero: true, ticks: { precision: 0 }, grid: { display: false } },
+                            y: { grid: { display: false } }
+                        },
+                        plugins: {
+                            legend: { position: 'top', align: 'end', labels: { boxWidth: 10, usePointStyle: true } },
+                            datalabels: conEtiquetas ? {
+                                display: (ctx) => ctx.dataset.data[ctx.dataIndex] > 0,
+                                anchor: 'end', align: 'right', color: '#5d6d7e', font: { size: 11, weight: '600' }
+                            } : { display: false }
+                        }
                     }
                 });
             }
@@ -5406,6 +5540,7 @@
                 egresoPorDestino[destino] = (egresoPorDestino[destino] || 0) + (eg.cantidad || 0);
             });
             const destinos = Object.keys(egresoPorDestino).sort((a, b) => egresoPorDestino[b] - egresoPorDestino[a]).slice(0, 8);
+            const paletaDestinos = ['#8e44ad', '#2980b9', '#16a085', '#d35400', '#c0392b', '#58d68d', '#f39c12', '#7f8c8d'];
 
             if (window.reporteEgresoLocalidadChart && typeof window.reporteEgresoLocalidadChart.destroy === 'function') window.reporteEgresoLocalidadChart.destroy();
             const ctxEgresoLoc = document.getElementById('reporteEgresoLocalidadChart');
@@ -5416,15 +5551,28 @@
                         labels: destinos.length ? destinos : ['Sin egresos'],
                         datasets: [{
                             data: destinos.length ? destinos.map(d => egresoPorDestino[d]) : [1],
-                            backgroundColor: ['#8e44ad', '#2980b9', '#16a085', '#d35400', '#c0392b', '#27ae60', '#f39c12', '#7f8c8d']
+                            backgroundColor: destinos.length ? paletaDestinos : ['#ecf0f1'],
+                            borderWidth: 2,
+                            borderColor: '#fff'
                         }]
                     },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
-                        plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } } }
+                        cutout: '68%',
+                        plugins: { legend: { display: false }, datalabels: { display: false } }
                     }
                 });
+            }
+            const egresoLegendEl = document.getElementById('reporteEgresoLocalidadLegend');
+            if (egresoLegendEl) {
+                egresoLegendEl.innerHTML = destinos.length ? destinos.map((d, i) => `
+                    <div class="reporte-legend-item">
+                        <span class="reporte-legend-dot" style="background:${paletaDestinos[i]};"></span>
+                        <span class="reporte-legend-value">${egresoPorDestino[d]}</span>
+                        <span style="color:#7f8c8d;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${d}</span>
+                    </div>
+                `).join('') : '<em style="color:#7f8c8d;font-size:13px;">Sin egresos registrados</em>';
             }
 
             // ===== Gráfico 5: Equipos y Móviles desplegados por día =====
@@ -5449,15 +5597,24 @@
                     data: {
                         labels: dias,
                         datasets: [
-                            { label: '🚗 Equipos', data: dias.map(d => porDia[d].equipos), backgroundColor: '#16a085' },
-                            { label: '🚙 Móviles', data: dias.map(d => porDia[d].moviles), backgroundColor: '#8e44ad' }
+                            { label: 'Equipos', data: dias.map(d => porDia[d].equipos), backgroundColor: '#48c9b0', borderRadius: 4 },
+                            { label: 'Móviles', data: dias.map(d => porDia[d].moviles), backgroundColor: '#af7ac5', borderRadius: 4 }
                         ]
                     },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
-                        scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true, ticks: { precision: 0 } } },
-                        plugins: { legend: { position: 'top' } }
+                        scales: {
+                            x: { stacked: true, grid: { display: false } },
+                            y: { stacked: true, beginAtZero: true, ticks: { precision: 0 }, grid: { display: false } }
+                        },
+                        plugins: {
+                            legend: { position: 'top', align: 'end', labels: { boxWidth: 10, usePointStyle: true } },
+                            datalabels: conEtiquetas && dias.length <= 10 ? {
+                                display: (ctx) => ctx.dataset.data[ctx.dataIndex] > 0,
+                                color: '#fff', font: { size: 10, weight: '600' }
+                            } : { display: false }
+                        }
                     }
                 });
             }
@@ -5473,8 +5630,11 @@
             const resumenEl = document.getElementById('reporteDespliegueLocalidades');
             if (resumenEl) {
                 resumenEl.innerHTML = topLocalidadesDespliegue.length
-                    ? '<strong>📍 Localidades con más despliegues:</strong><br>' + topLocalidadesDespliegue.map(l => `${l}: ${porLocalidadDespliegue[l]}`).join(' &nbsp;|&nbsp; ')
-                    : '<em style="color:#7f8c8d;">Sin despliegues registrados por localidad</em>';
+                    ? '<div style="font-size:12px;color:#5d6d7e;font-weight:600;text-transform:uppercase;letter-spacing:0.3px;margin-bottom:10px;">Localidades con más despliegues</div>' +
+                      '<div style="display:flex;flex-wrap:wrap;gap:8px;">' +
+                      topLocalidadesDespliegue.map(l => `<span style="background:#f4f6f7;border-radius:20px;padding:6px 14px;font-size:12px;color:#2c3e50;">${l} <strong>${porLocalidadDespliegue[l]}</strong></span>`).join('') +
+                      '</div>'
+                    : '<em style="color:#7f8c8d;font-size:13px;">Sin despliegues registrados por localidad</em>';
             }
         }
 
