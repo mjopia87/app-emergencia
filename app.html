@@ -712,6 +712,7 @@
                 <div class="nav-item" onclick="switchView('localidades', this)">📍 Localidades</div>
                 <div class="nav-item admin-only" onclick="switchView('usuarios', this)">👤 Usuarios</div>
                 <div class="nav-item admin-only" onclick="switchView('actividades', this)">📋 Actividades</div>
+                <div class="nav-item admin-only" onclick="switchView('papelera', this)">🗑️ Papelera</div>
             </div>
 
             <div class="main-area">
@@ -839,9 +840,9 @@
                         </div>
                         <table id="acopioTable">
                             <thead>
-                                <tr><th>Nombre del bien</th><th>Centro de Acopio</th><th>Cantidad Ingresada</th><th>Unidad de Medida</th><th>Fecha Ingreso</th><th>Acciones</th></tr>
+                                <tr><th>Nombre del bien</th><th>Centro de Acopio</th><th>Origen</th><th>Cantidad Ingresada</th><th>Unidad de Medida</th><th>Fecha Ingreso</th><th>Acciones</th></tr>
                             </thead>
-                            <tbody id="acopioBody"><tr><td colspan="6" class="empty-state">Sin items</td></tr></tbody>
+                            <tbody id="acopioBody"><tr><td colspan="7" class="empty-state">Sin items</td></tr></tbody>
                         </table>
                     </div>
 
@@ -850,9 +851,9 @@
                         <button class="btn btn-primary" onclick="openEgresoModal()">+ Nuevo Egreso</button>
                         <table id="egresoTable">
                             <thead>
-                                <tr><th>Bien</th><th>Centro</th><th>Cantidad</th><th>Entrega</th><th>Retira</th><th>Destino</th><th>Fecha Egreso</th><th>Respaldo</th><th>Acciones</th></tr>
+                                <tr><th>Bien</th><th>Centro</th><th>Origen</th><th>Cantidad</th><th>Entrega</th><th>Retira</th><th>Destino</th><th>Fecha Egreso</th><th>Respaldo</th><th>Acciones</th></tr>
                             </thead>
-                            <tbody id="egresoBody"><tr><td colspan="9" class="empty-state">Sin egresos</td></tr></tbody>
+                            <tbody id="egresoBody"><tr><td colspan="10" class="empty-state">Sin egresos</td></tr></tbody>
                         </table>
                     </div>
 
@@ -893,20 +894,8 @@
 
                 <!-- EQUIPOS -->
                 <div id="equipos">
-                    <!-- GESTIÓN DE EQUIPOS -->
-                    <div class="card">
-                        <div class="card-title">🚗 Gestión de Equipos</div>
-                        <button class="btn btn-primary" onclick="openModal('nuevoEquipoModal')">+ Nuevo Equipo</button>
-                        <table id="equipoTable">
-                            <thead>
-                                <tr><th>Tipo</th><th>ID/Patente</th><th>Encargado</th><th>Funcionarios</th><th>Acciones</th></tr>
-                            </thead>
-                            <tbody id="equipoBody"><tr><td colspan="5" class="empty-state">Sin equipos registrados</td></tr></tbody>
-                        </table>
-                    </div>
-
                     <!-- AGENDA DE TRABAJO -->
-                    <div class="card" style="margin-top:20px;">
+                    <div class="card">
                         <div class="card-title">📅 Agenda de Trabajo</div>
                         <div style="display:flex;gap:20px;margin-bottom:20px;">
                             <div style="flex:1;">
@@ -921,6 +910,23 @@
                                     <tbody id="actividadEquipoBody"><tr><td colspan="5" class="empty-state">Sin actividades</td></tr></tbody>
                                 </table>
                             </div>
+                        </div>
+                    </div>
+
+                    <!-- GESTIÓN DE EQUIPOS (sección contraída/plegable) -->
+                    <div class="card" style="margin-top:20px;">
+                        <div class="card-title" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;margin-bottom:0;" onclick="toggleGestionEquipos()">
+                            <span>🚗 Gestión de Equipos</span>
+                            <span id="gestionEquiposToggleIcon" style="font-size:14px;">▶</span>
+                        </div>
+                        <div id="gestionEquiposContent" style="display:none;margin-top:15px;">
+                            <button class="btn btn-primary" onclick="openModal('nuevoEquipoModal')">+ Nuevo Equipo</button>
+                            <table id="equipoTable">
+                                <thead>
+                                    <tr><th>Tipo</th><th>ID/Patente</th><th>Encargado</th><th>Funcionarios</th><th>Acciones</th></tr>
+                                </thead>
+                                <tbody id="equipoBody"><tr><td colspan="5" class="empty-state">Sin equipos registrados</td></tr></tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
@@ -1053,6 +1059,20 @@
                         </table>
                     </div>
                 </div>
+
+                <!-- PAPELERA (ADMIN ONLY) -->
+                <div id="papelera" class="admin-only">
+                    <div class="card">
+                        <div class="card-title">🗑️ Papelera - Registros Eliminados</div>
+                        <p style="color:#7f8c8d;margin-bottom:15px;">Solo el administrador puede restaurar o eliminar definitivamente los registros borrados en cualquier módulo de la plataforma.</p>
+                        <table id="papeleraTable">
+                            <thead>
+                                <tr><th>Tipo</th><th>Detalle</th><th>Eliminado por</th><th>Fecha</th><th>Acciones</th></tr>
+                            </thead>
+                            <tbody id="papeleraBody"><tr><td colspan="5" class="empty-state">La papelera está vacía</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -1150,6 +1170,7 @@
             <form onsubmit="saveAcopio(event)">
                 <div class="form-group"><label>Nombre del bien *</label><input type="text" id="acopioNombre" required></div>
                 <div class="form-group"><label>Centro de Acopio *</label><select id="acopioCentro" required><option value="">-- Seleccionar --</option><option value="Liceo DOR">Liceo DOR</option><option value="Escuela JCR">Escuela JCR</option><option value="Plaza de Abastos">Plaza de Abastos</option></select></div>
+                <div class="form-group"><label>Origen del Item *</label><select id="acopioOrigen" required><option value="">-- Seleccionar --</option><option value="Municipal">Municipal</option><option value="SENAPRED">SENAPRED</option><option value="Donación">Donación</option></select></div>
                 <div class="form-group"><label>Fecha de Ingreso *</label><input type="date" id="acopioFecha" required></div>
                 <div class="form-row">
                     <div class="form-group"><label>Cantidad Ingresada *</label><input type="number" id="acopioStock" min="0" required></div>
@@ -1169,6 +1190,7 @@
             <form onsubmit="saveEgreso(event)">
                 <div class="form-group"><label>Bien *</label><select id="egresoBien" required><option value="">-- Seleccionar --</option></select></div>
                 <div class="form-group"><label>Centro de Acopio *</label><select id="egresoCentro" required><option value="">-- Seleccionar --</option><option value="Liceo DOR">Liceo DOR</option><option value="Escuela JCR">Escuela JCR</option><option value="Plaza de Abastos">Plaza de Abastos</option></select></div>
+                <div class="form-group"><label>Origen del Item *</label><select id="egresoOrigen" required><option value="">-- Seleccionar --</option><option value="Municipal">Municipal</option><option value="SENAPRED">SENAPRED</option><option value="Donación">Donación</option></select></div>
                 <div class="form-group"><label>Fecha de Egreso *</label><input type="date" id="egresoFecha" required></div>
                 <div class="form-group"><label>Cantidad a Retirar *</label><input type="number" id="egresoCantidad" min="1" required></div>
 
@@ -1753,7 +1775,8 @@
             actividadesMovil: [],
             chat: [],
             reportes: [],
-            localidades: []
+            localidades: [],
+            papelera: []
         };
         const DB_KEY = 'illapel_db';
 
@@ -1828,73 +1851,11 @@
             console.log('✅ Mapa inicializado');
 
             // Agregar listener de click AQUÍ (es más confiable que en initMapClickListener)
+            // Nota: localidad, beneficiario, egreso, móvil y actividad de equipo tienen
+            // su propio listener dedicado (ver setup*MapClickListener) que dibuja un
+            // marcador temporal y mantiene el modal achicado hasta que el usuario
+            // desactive el modo manualmente, igual que el modo de requerimientos.
             map.on('click', function(e) {
-                // Si está en modo localidad
-                if (localidadClickMode) {
-                    const lat = e.latlng.lat;
-                    const lon = e.latlng.lng;
-
-                    document.getElementById('locLat').value = lat.toFixed(5);
-                    document.getElementById('locLon').value = lon.toFixed(5);
-                    document.getElementById('locClickStatus').textContent = '✅ Ubicación capturada';
-                    document.getElementById('locClickStatus').style.color = '#27ae60';
-                    localidadClickMode = false;
-                    document.getElementById('map').style.cursor = 'grab';
-
-                    console.log(`📍 Localidad ubicación: [${lat.toFixed(5)}, ${lon.toFixed(5)}]`);
-
-                    // Abrir modal nuevamente para que guarde
-                    setTimeout(() => {
-                        openModal('nuevaLocalidadModal');
-                    }, 300);
-
-                    return;
-                }
-
-                // Si está en modo beneficiario
-                if (beneficiarioClickMode) {
-                    const lat = e.latlng.lat;
-                    const lon = e.latlng.lng;
-
-                    document.getElementById('benLat').value = lat.toFixed(5);
-                    document.getElementById('benLon').value = lon.toFixed(5);
-                    document.getElementById('benCoordDisplay').textContent = `✅ [${lat.toFixed(5)}, ${lon.toFixed(5)}]`;
-                    document.getElementById('benCoordDisplay').style.color = '#27ae60';
-                    beneficiarioClickMode = false;
-                    document.getElementById('map').style.cursor = 'grab';
-
-                    console.log(`📍 Beneficiario ubicación: [${lat.toFixed(5)}, ${lon.toFixed(5)}]`);
-
-                    // Abrir modal nuevamente
-                    setTimeout(() => {
-                        openModal('beneficiarioModal');
-                    }, 300);
-
-                    return;
-                }
-
-                // Si está en modo egreso
-                if (egresoClickMode) {
-                    const lat = e.latlng.lat;
-                    const lon = e.latlng.lng;
-
-                    document.getElementById('egresoLat').value = lat.toFixed(5);
-                    document.getElementById('egresoLon').value = lon.toFixed(5);
-                    document.getElementById('egresoCoordDisplay').textContent = `✅ [${lat.toFixed(5)}, ${lon.toFixed(5)}]`;
-                    document.getElementById('egresoCoordDisplay').style.color = '#27ae60';
-                    egresoClickMode = false;
-                    document.getElementById('map').style.cursor = 'grab';
-
-                    console.log(`📍 Egreso ubicación: [${lat.toFixed(5)}, ${lon.toFixed(5)}]`);
-
-                    // Abrir modal nuevamente
-                    setTimeout(() => {
-                        openModal('egresoModal');
-                    }, 300);
-
-                    return;
-                }
-
                 if (!mapClickModeActive) {
                     return;
                 }
@@ -2207,44 +2168,10 @@
                 const lat = e.latlng.lat;
                 const lon = e.latlng.lng;
 
-                // Si está en modo localidad
-                if (localidadClickMode) {
-                    document.getElementById('locLat').value = lat.toFixed(5);
-                    document.getElementById('locLon').value = lon.toFixed(5);
-                    document.getElementById('locClickStatus').textContent = '✅ Ubicación capturada';
-                    document.getElementById('locClickStatus').style.color = '#27ae60';
-                    localidadClickMode = false;
-                    document.getElementById('map').style.cursor = 'grab';
-                    console.log(`📍 Localidad ubicación: [${lat.toFixed(5)}, ${lon.toFixed(5)}]`);
-                    setTimeout(() => openModal('nuevaLocalidadModal'), 300);
-                    return;
-                }
-
-                // Si está en modo beneficiario
-                if (beneficiarioClickMode) {
-                    document.getElementById('benLat').value = lat.toFixed(5);
-                    document.getElementById('benLon').value = lon.toFixed(5);
-                    document.getElementById('benCoordDisplay').textContent = `✅ [${lat.toFixed(5)}, ${lon.toFixed(5)}]`;
-                    document.getElementById('benCoordDisplay').style.color = '#27ae60';
-                    beneficiarioClickMode = false;
-                    document.getElementById('map').style.cursor = 'grab';
-                    console.log(`📍 Beneficiario ubicación: [${lat.toFixed(5)}, ${lon.toFixed(5)}]`);
-                    setTimeout(() => openModal('beneficiarioModal'), 300);
-                    return;
-                }
-
-                // Si está en modo egreso
-                if (egresoClickMode) {
-                    document.getElementById('egresoLat').value = lat.toFixed(5);
-                    document.getElementById('egresoLon').value = lon.toFixed(5);
-                    document.getElementById('egresoCoordDisplay').textContent = `✅ [${lat.toFixed(5)}, ${lon.toFixed(5)}]`;
-                    document.getElementById('egresoCoordDisplay').style.color = '#27ae60';
-                    egresoClickMode = false;
-                    document.getElementById('map').style.cursor = 'grab';
-                    console.log(`📍 Egreso ubicación: [${lat.toFixed(5)}, ${lon.toFixed(5)}]`);
-                    setTimeout(() => openModal('egresoModal'), 300);
-                    return;
-                }
+                // Nota: localidad, beneficiario y egreso usan su propio listener
+                // dedicado (setupLocalidadMapClickListener, setupBeneficiarioMapClickListener,
+                // setupEgresoMapClickListener) que dibuja un marcador temporal y mantiene
+                // el modal achicado hasta que el usuario desactive el modo manualmente.
 
                 // Si está en modo emergencia/requerimiento
                 if (mapClickModeActive) {
@@ -2302,6 +2229,15 @@
             icon.textContent = isHidden ? '▼' : '▶';
         }
 
+        // Plegar/desplegar la sección "Gestión de Equipos"
+        function toggleGestionEquipos() {
+            const content = document.getElementById('gestionEquiposContent');
+            const icon = document.getElementById('gestionEquiposToggleIcon');
+            const isHidden = content.style.display === 'none';
+            content.style.display = isHidden ? 'block' : 'none';
+            icon.textContent = isHidden ? '▼' : '▶';
+        }
+
         // ===== VISTAS =====
         function switchView(view, element) {
             // Quitar clase active de todos los divs
@@ -2351,6 +2287,9 @@
                     refreshActividades();
                 });
             }
+            if (view === 'papelera') {
+                refreshPapelera();
+            }
         }
 
         // ===== MODALES =====
@@ -2396,6 +2335,45 @@
         function closeModal(id) {
             const modal = document.getElementById(id);
             modal.classList.remove('active');
+
+            // Salvaguarda general: si el modal que se cierra tenía el modo de click
+            // en mapa activo, lo desactivamos y quitamos su marcador temporal para
+            // que no quede "pegado" el mapa en modo selección ni el modal achicado.
+            const modalContentGeneral = modal.querySelector('.modal-content');
+            if (modalContentGeneral) modalContentGeneral.classList.remove('map-click-mode');
+            modal.classList.remove('map-click-mode-modal');
+            if (window.map) {
+                document.getElementById('map').style.cursor = 'grab';
+                document.getElementById('map').style.zIndex = '10';
+            }
+            if (id === 'nuevaLocalidadModal') {
+                localidadClickMode = false;
+                if (typeof localidadTempMarker !== 'undefined' && localidadTempMarker && window.map) {
+                    try { window.map.removeLayer(localidadTempMarker); } catch(e) {}
+                    localidadTempMarker = null;
+                }
+            }
+            if (id === 'egresoModal') {
+                egresoClickMode = false;
+                if (typeof egresoTempMarker !== 'undefined' && egresoTempMarker && window.map) {
+                    try { window.map.removeLayer(egresoTempMarker); } catch(e) {}
+                    egresoTempMarker = null;
+                }
+            }
+            if (id === 'nuevaActividadMovilModal') {
+                window.movilClickMode = false;
+                if (window.movilTempMarker && window.map) {
+                    try { window.map.removeLayer(window.movilTempMarker); } catch(e) {}
+                    window.movilTempMarker = null;
+                }
+            }
+            if (id === 'nuevaActividadEquipoModal') {
+                actividadClickMode = false;
+                if (typeof actividadTempMarker !== 'undefined' && actividadTempMarker && window.map) {
+                    try { window.map.removeLayer(actividadTempMarker); } catch(e) {}
+                    actividadTempMarker = null;
+                }
+            }
 
             // Resetear modo click y datos cuando se cierra modal de emergencias
             if (id === 'emergenciaModal') {
@@ -2445,14 +2423,17 @@
             // Resetear y re-habilitar beneficiarioModal
             if (id === 'beneficiarioModal') {
                 beneficiarioClickMode = false;
-                if (tempMarker && window.map) {
+                if (beneficiarioTempMarker && window.map) {
                     try {
-                        window.map.removeLayer(tempMarker);
+                        window.map.removeLayer(beneficiarioTempMarker);
                     } catch(e) {
                         console.warn('⚠️ Error removiendo marcador:', e);
                     }
-                    tempMarker = null;
+                    beneficiarioTempMarker = null;
                 }
+                const benModalContent = document.querySelector('#beneficiarioModal .modal-content');
+                if (benModalContent) benModalContent.classList.remove('map-click-mode');
+                modal.classList.remove('map-click-mode-modal');
                 if (window.map) window.map.dragging.enable();
                 document.getElementById('map').style.cursor = 'grab';
                 document.getElementById('benCoordDisplay').textContent = 'Sin coordenadas';
@@ -2514,7 +2495,9 @@
                     timestamp: new Date().toISOString(),
                     usuario: currentUser,
                     lat: lat,
-                    lon: lon
+                    lon: lon,
+                    // Preservar el estado de atención si se está editando; nuevo requerimiento nace "pendiente"
+                    estadoAtencion: window.editandoEmergenciaId ? (DB.emergencias.find(em => em.id === window.editandoEmergenciaId)?.estadoAtencion || 'pendiente') : 'pendiente'
                 };
 
                 const isEditing = !!window.editandoEmergenciaId;
@@ -2554,22 +2537,48 @@
                 tbody.innerHTML = '<tr><td colspan="6" class="empty-state">Sin emergencias</td></tr>';
                 return;
             }
-            tbody.innerHTML = DB.emergencias.map(e => `
+            tbody.innerHTML = DB.emergencias.map(e => {
+                const atendido = e.estadoAtencion === 'atendido';
+                return `
                 <tr>
                     <td>${e.contacto}</td>
                     <td>${e.tipo}</td>
                     <td>${e.direccion || e.ubicacion || 'Sin dirección'}</td>
-                    <td><span class="badge badge-${e.urgencia==='critico'?'danger':e.urgencia==='alto'?'warning':'success'}">${e.urgencia}</span></td>
+                    <td>
+                        <span class="badge badge-${e.urgencia==='critico'?'danger':e.urgencia==='alto'?'warning':'success'}">${e.urgencia}</span>
+                        <br/>
+                        <span class="badge" style="margin-top:4px;background:${atendido ? '#27ae60' : '#e67e22'};color:#fff;">${atendido ? '🎫 Atendido' : '⏳ Pendiente'}</span>
+                    </td>
                     <td>${e.fecha || '-'}</td>
                     <td>
                         <button class="btn btn-info btn-small" onclick="verDetallesEmergencia(${e.id})">👁️ Ver</button>
                         <button class="btn btn-secondary btn-small" onclick="irAlUbicacion(${e.lat}, ${e.lon})">📍</button>
                         <button class="btn btn-secondary btn-small" onclick="editarEmergencia(${e.id})">✏️</button>
+                        ${!atendido ? `<button class="btn btn-small" style="background:#27ae60;color:#fff;" onclick="marcarAtendido(${e.id})">✅ Atendido</button>` : ''}
                         <button class="btn btn-danger btn-small" onclick="deleteEmergencia(${e.id})">🗑️</button>
                     </td>
                 </tr>
-            `).join('');
+            `;
+            }).join('');
         }
+
+        function marcarAtendido(id) {
+            const emergencia = DB.emergencias.find(e => e.id === id);
+            if (!emergencia) return;
+            if (!confirm('¿Marcar este requerimiento como atendido?')) return;
+
+            emergencia.estadoAtencion = 'atendido';
+            saveDB();
+            logActivity('actualización', `Requerimiento marcado como atendido: ${emergencia.contacto}`);
+            refreshEmergencias();
+            refreshReportes();
+            if (window.mapViewerInstance) {
+                window.mapViewerInstance.renderEmergencias(DB.emergencias);
+            } else if (typeof updateMapMarkers === 'function') {
+                updateMapMarkers();
+            }
+        }
+        window.marcarAtendido = marcarAtendido;
 
         function editarEmergencia(id) {
             const emergencia = DB.emergencias.find(e => e.id === id);
@@ -2595,7 +2604,12 @@
 
         function deleteEmergencia(id) {
             if (!confirm('¿Eliminar?')) return;
+            const registro = DB.emergencias.find(e => e.id === id);
             DB.emergencias = DB.emergencias.filter(e => e.id !== id);
+            if (registro) {
+                moverAPapelera('Requerimiento de Ayuda', 'emergencias', registro);
+                logActivity('eliminación', `Requerimiento: ${registro.contacto || registro.urgencia || id}`);
+            }
             saveDB();
             refreshEmergencias();
             updateMapMarkers();
@@ -2680,24 +2694,85 @@
         }
 
         // ===== LOCALIDADES PERSONALIZADAS =====
+        // Marcador temporal para localidad
+        let localidadTempMarker = null;
+
+        function setupLocalidadMapClickListener() {
+            if (window.map && !window.localidadMapListener) {
+                window.localidadMapListener = window.map.on('click', function(e) {
+                    if (localidadClickMode) {
+                        const lat = e.latlng.lat;
+                        const lon = e.latlng.lng;
+                        document.getElementById('locLat').value = lat.toFixed(5);
+                        document.getElementById('locLon').value = lon.toFixed(5);
+
+                        const statusEl = document.getElementById('locClickStatus');
+                        statusEl.innerHTML = `✓ Ubicación: [${lat.toFixed(5)}, ${lon.toFixed(5)}]`;
+                        statusEl.style.color = '#27ae60';
+
+                        if (localidadTempMarker) {
+                            window.map.removeLayer(localidadTempMarker);
+                        }
+
+                        localidadTempMarker = L.circleMarker([lat, lon], {
+                            radius: 12,
+                            fillColor: '#3498db',
+                            color: '#fff',
+                            weight: 3,
+                            opacity: 1,
+                            fillOpacity: 0.9
+                        }).addTo(window.map).bindPopup(`<strong>📍 Localidad</strong><br/>[${lat.toFixed(5)}, ${lon.toFixed(5)}]`).openPopup();
+
+                        // El modo se mantiene activo hasta desactivarlo manualmente,
+                        // igual que en Requerimientos, para poder reposicionar el marcador.
+                    }
+                });
+            }
+        }
+
         function toggleLocalidadClickMode() {
             localidadClickMode = !localidadClickMode;
             const statusEl = document.getElementById('locClickStatus');
+            const modalContent = document.querySelector('#nuevaLocalidadModal .modal-content');
+            const modal = document.getElementById('nuevaLocalidadModal');
 
             if (localidadClickMode) {
-                // Cerrar modal y volver al mapa
-                closeModal('nuevaLocalidadModal');
-                switchView('mapa', document.querySelector('[onclick="switchView(\'mapa\', this)"]'));
-
-                statusEl.textContent = '🎯 Haz click en el mapa';
+                statusEl.innerHTML = '🎯 Haz click en el mapa para seleccionar ubicación';
                 statusEl.style.color = '#27ae60';
-                document.getElementById('map').style.cursor = 'crosshair';
+                statusEl.style.fontWeight = 'bold';
 
-                // Mostrar mensaje flotante
-                alert('✅ Modo localización activado.\nHaz click en el mapa para obtener las coordenadas.');
+                if (modalContent) {
+                    modalContent.classList.add('map-click-mode');
+                }
+                if (modal) {
+                    modal.classList.add('map-click-mode-modal');
+                }
+
+                document.getElementById('map').style.cursor = 'crosshair';
+                document.getElementById('map').style.zIndex = '999';
+                setupLocalidadMapClickListener();
             } else {
-                statusEl.textContent = '';
+                if (document.getElementById('locLat').value) {
+                    statusEl.innerHTML = `✓ Ubicación: [${parseFloat(document.getElementById('locLat').value).toFixed(5)}, ${parseFloat(document.getElementById('locLon').value).toFixed(5)}]`;
+                    statusEl.style.color = '#27ae60';
+                } else {
+                    statusEl.textContent = '';
+                }
+
+                if (modalContent) {
+                    modalContent.classList.remove('map-click-mode');
+                }
+                if (modal) {
+                    modal.classList.remove('map-click-mode-modal');
+                }
+
                 document.getElementById('map').style.cursor = 'grab';
+                document.getElementById('map').style.zIndex = '10';
+
+                if (localidadTempMarker && window.map) {
+                    try { window.map.removeLayer(localidadTempMarker); } catch(e) {}
+                    localidadTempMarker = null;
+                }
             }
         }
 
@@ -2759,7 +2834,12 @@
 
         function deleteLocalidad(id) {
             if (!confirm('¿Eliminar localidad?')) return;
+            const registro = DB.localidades.find(l => l.id === id);
             DB.localidades = DB.localidades.filter(l => l.id !== id);
+            if (registro) {
+                moverAPapelera('Localidad', 'localidades', registro);
+                logActivity('eliminación', `Localidad: ${registro.nombre || id}`);
+            }
             saveDB();
             refreshLocalidades();
             actualizarMapaLocalidades();
@@ -2833,6 +2913,7 @@
             const acopioData = {
                 nombre: document.getElementById('acopioNombre').value,
                 centro: document.getElementById('acopioCentro').value,
+                origen: document.getElementById('acopioOrigen').value,
                 cantidadIngresada: parseInt(document.getElementById('acopioStock').value),
                 tipoUnidad: document.getElementById('acopioTipoUnidad').value,
                 fechaIngreso: fechaIngreso,
@@ -2867,13 +2948,14 @@
         function refreshAcopio() {
             const tbody = document.getElementById('acopioBody');
             if (DB.acopio.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" class="empty-state">Sin items</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" class="empty-state">Sin items</td></tr>';
                 return;
             }
             tbody.innerHTML = DB.acopio.map(a => `
                 <tr>
                     <td>${a.nombre}</td>
                     <td>${a.centro || '-'}</td>
+                    <td>${a.origen || '-'}</td>
                     <td>${a.cantidadIngresada || a.stock || '-'}</td>
                     <td>${a.tipoUnidad || '-'}</td>
                     <td>${a.fecha || '-'}</td>
@@ -2891,6 +2973,7 @@
 
             document.getElementById('acopioNombre').value = acopio.nombre;
             document.getElementById('acopioCentro').value = acopio.centro;
+            document.getElementById('acopioOrigen').value = acopio.origen || '';
             document.getElementById('acopioStock').value = acopio.cantidadIngresada || acopio.stock;
             document.getElementById('acopioTipoUnidad').value = acopio.tipoUnidad;
             document.getElementById('acopioFecha').value = acopio.fechaIngreso || new Date().toISOString().split('T')[0];
@@ -2900,9 +2983,16 @@
         }
 
         function deleteAcopio(id) {
+            if (!confirm('¿Eliminar este item de acopio?')) return;
+            const registro = DB.acopio.find(a => a.id === id);
             DB.acopio = DB.acopio.filter(a => a.id !== id);
+            if (registro) {
+                moverAPapelera('Acopio', 'acopio', registro);
+                logActivity('eliminación', `Acopio: ${registro.nombre || id}`);
+            }
             saveDB();
             refreshAcopio();
+            actualizarDashboardStock();
         }
 
         // ===== CARGA MASIVA ACOPIO =====
@@ -3127,6 +3217,42 @@
             document.getElementById('egresoDestinoRural').style.display = tipo === 'rural' ? 'block' : 'none';
         }
 
+        // Marcador temporal para egreso
+        let egresoTempMarker = null;
+
+        function setupEgresoMapClickListener() {
+            if (window.map && !window.egresoMapListener) {
+                window.egresoMapListener = window.map.on('click', function(e) {
+                    if (egresoClickMode) {
+                        const lat = e.latlng.lat;
+                        const lon = e.latlng.lng;
+                        document.getElementById('egresoLat').value = lat.toFixed(5);
+                        document.getElementById('egresoLon').value = lon.toFixed(5);
+
+                        const statusEl = document.getElementById('egresoCoordDisplay');
+                        statusEl.innerHTML = `✓ Ubicación: [${lat.toFixed(5)}, ${lon.toFixed(5)}]`;
+                        statusEl.style.color = '#27ae60';
+
+                        if (egresoTempMarker) {
+                            window.map.removeLayer(egresoTempMarker);
+                        }
+
+                        egresoTempMarker = L.circleMarker([lat, lon], {
+                            radius: 12,
+                            fillColor: '#e67e22',
+                            color: '#fff',
+                            weight: 3,
+                            opacity: 1,
+                            fillOpacity: 0.9
+                        }).addTo(window.map).bindPopup(`<strong>📦 Destino del egreso</strong><br/>[${lat.toFixed(5)}, ${lon.toFixed(5)}]`).openPopup();
+
+                        // El modo se mantiene activo hasta desactivarlo manualmente,
+                        // igual que en Requerimientos, para poder reposicionar el marcador.
+                    }
+                });
+            }
+        }
+
         function obtenerUbicacionEgreso() {
             egresoClickMode = !egresoClickMode;
             const statusEl = document.getElementById('egresoCoordDisplay');
@@ -3147,10 +3273,16 @@
 
                 document.getElementById('map').style.cursor = 'crosshair';
                 document.getElementById('map').style.zIndex = '999';
+                setupEgresoMapClickListener();
             } else {
-                statusEl.textContent = 'Sin coordenadas';
-                statusEl.style.color = '#7f8c8d';
-                statusEl.style.fontWeight = 'normal';
+                if (document.getElementById('egresoLat').value) {
+                    statusEl.innerHTML = `✓ Ubicación: [${parseFloat(document.getElementById('egresoLat').value).toFixed(5)}, ${parseFloat(document.getElementById('egresoLon').value).toFixed(5)}]`;
+                    statusEl.style.color = '#27ae60';
+                } else {
+                    statusEl.textContent = 'Sin coordenadas';
+                    statusEl.style.color = '#7f8c8d';
+                    statusEl.style.fontWeight = 'normal';
+                }
 
                 if (modalContent) {
                     modalContent.classList.remove('map-click-mode');
@@ -3161,6 +3293,11 @@
 
                 document.getElementById('map').style.cursor = 'grab';
                 document.getElementById('map').style.zIndex = '10';
+
+                if (egresoTempMarker && window.map) {
+                    try { window.map.removeLayer(egresoTempMarker); } catch(e) {}
+                    egresoTempMarker = null;
+                }
             }
         }
 
@@ -3196,6 +3333,7 @@
             const egresoData = {
                 bien: document.getElementById('egresoBien').value,
                 centro: document.getElementById('egresoCentro').value,
+                origen: document.getElementById('egresoOrigen').value,
                 cantidad: parseInt(document.getElementById('egresoCantidad').value),
                 entrega: {
                     nombre: document.getElementById('egresoEntregaNombre').value,
@@ -3245,13 +3383,14 @@
         function refreshEgresos() {
             const tbody = document.getElementById('egresoBody');
             if (DB.egresos.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="9" class="empty-state">Sin egresos</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="10" class="empty-state">Sin egresos</td></tr>';
                 return;
             }
             tbody.innerHTML = DB.egresos.map(eg => `
                 <tr>
                     <td>${eg.bien || '-'}</td>
                     <td>${eg.centro || '-'}</td>
+                    <td>${eg.origen || '-'}</td>
                     <td>${eg.cantidad || '-'}</td>
                     <td>${eg.entrega.nombre || '-'}</td>
                     <td>${eg.retira.nombre || '-'}</td>
@@ -3310,6 +3449,7 @@
             setTimeout(() => {
                 document.getElementById('egresoBien').value = egreso.bien;
                 document.getElementById('egresoCentro').value = egreso.centro;
+                document.getElementById('egresoOrigen').value = egreso.origen || '';
                 document.getElementById('egresoCantidad').value = egreso.cantidad;
                 document.getElementById('egresoEntregaNombre').value = egreso.entrega.nombre;
                 document.getElementById('egresoEntregaRut').value = egreso.entrega.rut;
@@ -3336,12 +3476,16 @@
         }
 
         function deleteEgreso(id) {
-            if (confirm('¿Eliminar este egreso?')) {
-                DB.egresos = DB.egresos.filter(eg => eg.id !== id);
-                saveDB();
-                refreshEgresos();
-                actualizarDashboardStock();
+            if (!confirm('¿Eliminar este egreso?')) return;
+            const registro = DB.egresos.find(eg => eg.id === id);
+            DB.egresos = DB.egresos.filter(eg => eg.id !== id);
+            if (registro) {
+                moverAPapelera('Egreso de Acopio', 'egresos', registro);
+                logActivity('eliminación', `Egreso: ${registro.bien || id}`);
             }
+            saveDB();
+            refreshEgresos();
+            actualizarDashboardStock();
         }
 
         function actualizarDashboardStock() {
@@ -3750,9 +3894,14 @@
                 document.getElementById('map').style.zIndex = '999';
                 setupBeneficiarioMapClickListener();
             } else {
-                statusEl.textContent = 'Sin coordenadas';
-                statusEl.style.color = '#7f8c8d';
-                statusEl.style.fontWeight = 'normal';
+                if (document.getElementById('benLat').value) {
+                    statusEl.innerHTML = `✓ Ubicación: [${parseFloat(document.getElementById('benLat').value).toFixed(5)}, ${parseFloat(document.getElementById('benLon').value).toFixed(5)}]`;
+                    statusEl.style.color = '#27ae60';
+                } else {
+                    statusEl.textContent = 'Sin coordenadas';
+                    statusEl.style.color = '#7f8c8d';
+                    statusEl.style.fontWeight = 'normal';
+                }
 
                 if (modalContent) {
                     modalContent.classList.remove('map-click-mode');
@@ -3763,6 +3912,11 @@
 
                 document.getElementById('map').style.cursor = 'grab';
                 document.getElementById('map').style.zIndex = '10';
+
+                if (beneficiarioTempMarker && window.map) {
+                    try { window.map.removeLayer(beneficiarioTempMarker); } catch(e) {}
+                    beneficiarioTempMarker = null;
+                }
             }
         }
 
@@ -3814,16 +3968,11 @@
                                 className: 'beneficiary-temp-marker'
                             }),
                             zIndex: 999
-                        }).addTo(window.map);
+                        }).addTo(window.map).bindPopup(`<strong>📍 Ubicación</strong><br/>[${lat.toFixed(5)}, ${lon.toFixed(5)}]`).openPopup();
 
-                        // Volver a estado normal
-                        beneficiarioClickMode = false;
-                        const modalContent = document.querySelector('#beneficiarioModal .modal-content');
-                        const modal = document.getElementById('beneficiarioModal');
-                        if (modalContent) modalContent.classList.remove('map-click-mode');
-                        if (modal) modal.classList.remove('map-click-mode-modal');
-                        document.getElementById('map').style.cursor = 'grab';
-                        document.getElementById('map').style.zIndex = '10';
+                        // El modo se mantiene activo (modal sigue achicado) para poder
+                        // reposicionar el marcador con otro click; se desactiva manualmente
+                        // con el botón "📍 Click en mapa", igual que en Requerimientos.
                     }
                 });
             }
@@ -4075,7 +4224,13 @@
         }
 
         function deleteBeneficiario(id) {
+            if (!confirm('¿Eliminar este beneficiario?')) return;
+            const registro = DB.beneficiarios.find(b => b.id === id);
             DB.beneficiarios = DB.beneficiarios.filter(b => b.id !== id);
+            if (registro) {
+                moverAPapelera('Beneficiario', 'beneficiarios', registro);
+                logActivity('eliminación', `Beneficiario: ${registro.nombre || id}`);
+            }
             saveDB();
             refreshBeneficiarios();
         }
@@ -4174,7 +4329,12 @@
 
         function deleteEquipo(id) {
             if (!confirm('¿Eliminar este equipo?')) return;
+            const registro = DB.equipos.find(e => e.id === id);
             DB.equipos = DB.equipos.filter(e => e.id !== id);
+            if (registro) {
+                moverAPapelera('Equipo', 'equipos', registro);
+                logActivity('eliminación', `Equipo: ${registro.tipo || id}`);
+            }
             saveDB();
             refreshEquipos();
         }
@@ -4276,7 +4436,12 @@
 
         function deleteMovil(id) {
             if (!confirm('¿Eliminar este móvil?')) return;
+            const registro = DB.moviles.find(m => m.id === id);
             DB.moviles = DB.moviles.filter(m => m.id !== id);
+            if (registro) {
+                moverAPapelera('Móvil', 'moviles', registro);
+                logActivity('eliminación', `Móvil: ${registro.ppu || id}`);
+            }
             saveDB();
             refreshMoviles();
             actualizarSelectMoviles();
@@ -4392,9 +4557,14 @@
                     statusEl.style.color = '#e74c3c';
                 }
             } else {
-                statusEl.textContent = 'Sin ubicación';
-                statusEl.style.color = '#7f8c8d';
-                statusEl.style.fontWeight = 'normal';
+                if (document.getElementById('actMovilLat').value) {
+                    statusEl.textContent = `✓ Ubicación: [${parseFloat(document.getElementById('actMovilLat').value).toFixed(5)}, ${parseFloat(document.getElementById('actMovilLon').value).toFixed(5)}]`;
+                    statusEl.style.color = '#27ae60';
+                } else {
+                    statusEl.textContent = 'Sin ubicación';
+                    statusEl.style.color = '#7f8c8d';
+                    statusEl.style.fontWeight = 'normal';
+                }
 
                 if (modalContent) {
                     modalContent.classList.remove('map-click-mode');
@@ -4404,6 +4574,11 @@
                 }
                 mapElement.style.cursor = 'grab';
                 mapElement.style.zIndex = '10';
+
+                if (window.movilTempMarker && window.map) {
+                    try { window.map.removeLayer(window.movilTempMarker); } catch(e) {}
+                    window.movilTempMarker = null;
+                }
             }
         }
 
@@ -4429,18 +4604,21 @@
                     statusEl.textContent = `✓ Ubicación: [${lat.toFixed(5)}, ${lon.toFixed(5)}]`;
                     statusEl.style.color = '#27ae60';
 
-                    window.movilClickMode = false;
-                    const modal = document.getElementById('nuevaActividadMovilModal');
-                    const modalContent = document.querySelector('#nuevaActividadMovilModal .modal-content');
+                    if (window.movilTempMarker) {
+                        window.map.removeLayer(window.movilTempMarker);
+                    }
 
-                    if (modalContent) modalContent.classList.remove('map-click-mode');
-                    if (modal) modal.classList.remove('map-click-mode-modal');
-                    document.getElementById('map').style.cursor = 'grab';
-                    document.getElementById('map').style.zIndex = '10';
+                    window.movilTempMarker = L.circleMarker([lat, lon], {
+                        radius: 12,
+                        fillColor: '#8e44ad',
+                        color: '#fff',
+                        weight: 3,
+                        opacity: 1,
+                        fillOpacity: 0.9
+                    }).addTo(window.map).bindPopup(`<strong>🚙 Ubicación</strong><br/>[${lat.toFixed(5)}, ${lon.toFixed(5)}]`).openPopup();
 
-                    // Remover el listener después de usar
-                    window.map.off('click', window.movilMapListener);
-                    window.movilMapListener = null;
+                    // El modo se mantiene activo hasta desactivarlo manualmente con el
+                    // botón, igual que en Requerimientos, para poder reposicionar el marcador.
                 }
             };
 
@@ -4584,7 +4762,12 @@
 
         function deleteActividadMovil(id) {
             if (!confirm('¿Eliminar esta actividad?')) return;
+            const registro = DB.actividadesMovil.find(a => a.id === id);
             DB.actividadesMovil = DB.actividadesMovil.filter(a => a.id !== id);
+            if (registro) {
+                moverAPapelera('Actividad Móvil', 'actividadesMovil', registro);
+                logActivity('eliminación', `Actividad Móvil: ${registro.fecha || id}`);
+            }
             saveDB();
             refreshActividadesMovil();
             actualizarAgendaCalendarioMoviles();
@@ -4693,9 +4876,14 @@
                 mapElement.style.cursor = 'crosshair';
                 mapElement.style.zIndex = '999';
             } else {
-                statusEl.textContent = 'Sin ubicación';
-                statusEl.style.color = '#7f8c8d';
-                statusEl.style.fontWeight = 'normal';
+                if (document.getElementById('actLat').value) {
+                    statusEl.textContent = `✓ Ubicación: [${parseFloat(document.getElementById('actLat').value).toFixed(5)}, ${parseFloat(document.getElementById('actLon').value).toFixed(5)}]`;
+                    statusEl.style.color = '#27ae60';
+                } else {
+                    statusEl.textContent = 'Sin ubicación';
+                    statusEl.style.color = '#7f8c8d';
+                    statusEl.style.fontWeight = 'normal';
+                }
 
                 if (modalContent) {
                     modalContent.classList.remove('map-click-mode');
@@ -4706,8 +4894,16 @@
 
                 mapElement.style.cursor = 'grab';
                 mapElement.style.zIndex = '10';
+
+                if (actividadTempMarker && window.map) {
+                    try { window.map.removeLayer(actividadTempMarker); } catch(e) {}
+                    actividadTempMarker = null;
+                }
             }
         }
+
+        // Marcador temporal para actividad de equipo
+        let actividadTempMarker = null;
 
         // Listener de click en mapa para actividades
         function setupActividadMapClickListener() {
@@ -4722,14 +4918,21 @@
                         statusEl.textContent = `✓ Ubicación: [${lat.toFixed(5)}, ${lon.toFixed(5)}]`;
                         statusEl.style.color = '#27ae60';
 
-                        // Volver a estado normal
-                        actividadClickMode = false;
-                        const modalContent = document.querySelector('#nuevaActividadEquipoModal .modal-content');
-                        const modal = document.getElementById('nuevaActividadEquipoModal');
-                        if (modalContent) modalContent.classList.remove('map-click-mode');
-                        if (modal) modal.classList.remove('map-click-mode-modal');
-                        document.getElementById('map').style.cursor = 'grab';
-                        document.getElementById('map').style.zIndex = '10';
+                        if (actividadTempMarker) {
+                            window.map.removeLayer(actividadTempMarker);
+                        }
+
+                        actividadTempMarker = L.circleMarker([lat, lon], {
+                            radius: 12,
+                            fillColor: '#16a085',
+                            color: '#fff',
+                            weight: 3,
+                            opacity: 1,
+                            fillOpacity: 0.9
+                        }).addTo(window.map).bindPopup(`<strong>🚗 Ubicación</strong><br/>[${lat.toFixed(5)}, ${lon.toFixed(5)}]`).openPopup();
+
+                        // El modo se mantiene activo hasta desactivarlo manualmente con el
+                        // botón, igual que en Requerimientos, para poder reposicionar el marcador.
                     }
                 });
             }
@@ -4884,7 +5087,12 @@
 
         function deleteActividadEquipo(id) {
             if (!confirm('¿Eliminar esta actividad?')) return;
+            const registro = DB.actividadesEquipo.find(a => a.id === id);
             DB.actividadesEquipo = DB.actividadesEquipo.filter(a => a.id !== id);
+            if (registro) {
+                moverAPapelera('Actividad Equipo', 'actividadesEquipo', registro);
+                logActivity('eliminación', `Actividad Equipo: ${registro.fecha || id}`);
+            }
             saveDB();
             refreshActividadesEquipo();
             actualizarAgendaCalendario();
@@ -5549,6 +5757,108 @@
             };
             log.push(activity);
             saveActivityLog(log);
+        }
+
+        // ===== PAPELERA (registros eliminados, recuperables solo por el admin) =====
+
+        // Guarda una copia del registro eliminado en la papelera, antes de borrarlo definitivamente del módulo
+        function moverAPapelera(tipo, arrayKey, registro) {
+            if (!DB.papelera) DB.papelera = [];
+            DB.papelera.push({
+                id: Date.now() + Math.random(),
+                tipo,
+                arrayKey,
+                registro,
+                eliminadoPor: currentUser,
+                fecha: new Date().toLocaleString('es-CL')
+            });
+        }
+
+        // Genera una descripción legible de un registro eliminado, según su tipo
+        function descripcionPapelera(item) {
+            const r = item.registro || {};
+            switch (item.arrayKey) {
+                case 'emergencias': return r.contacto || r.urgencia || '(sin datos)';
+                case 'acopio': return `${r.nombre || '-'} — ${r.centro || '-'}`;
+                case 'egresos': return `${r.bien || '-'} — ${r.centro || '-'}`;
+                case 'beneficiarios': return `${r.nombre || '-'} — ${r.rut || '-'}`;
+                case 'equipos': return `${r.tipo || '-'} — ${r.idPatente || r.encargado || ''}`;
+                case 'moviles': return `${r.ppu || '-'} — ${r.tipo || ''}`;
+                case 'actividadesEquipo': return `${r.tipo || '-'} — ${r.fecha || ''}`;
+                case 'actividadesMovil': return `${r.tipoMovil || '-'} — ${r.fecha || ''}`;
+                case 'localidades': return r.nombre || '-';
+                default: return JSON.stringify(r).slice(0, 60);
+            }
+        }
+
+        // Refrescar la tabla de la papelera (solo admin)
+        function refreshPapelera() {
+            const tbody = document.getElementById('papeleraBody');
+            const papelera = DB.papelera || [];
+
+            if (papelera.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="empty-state">La papelera está vacía</td></tr>';
+                return;
+            }
+
+            const ordenada = [...papelera].reverse();
+            tbody.innerHTML = ordenada.map(item => `
+                <tr>
+                    <td>${item.tipo}</td>
+                    <td>${descripcionPapelera(item)}</td>
+                    <td>${item.eliminadoPor || '-'}</td>
+                    <td>${item.fecha || '-'}</td>
+                    <td>
+                        <button class="btn btn-primary btn-small" onclick="restaurarRegistro(${JSON.stringify(item.id)})">↩️ Restaurar</button>
+                        <button class="btn btn-danger btn-small" onclick="eliminarDefinitivo(${JSON.stringify(item.id)})">🗑️ Eliminar definitivo</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Restaurar un registro eliminado (solo admin)
+        function restaurarRegistro(papeleraId) {
+            if (currentUser !== 'admin') {
+                alert('Solo el administrador puede restaurar registros eliminados');
+                return;
+            }
+
+            const idx = (DB.papelera || []).findIndex(p => p.id === papeleraId);
+            if (idx === -1) return;
+            const item = DB.papelera[idx];
+
+            if (!confirm(`¿Restaurar este registro?\n\n${item.tipo}: ${descripcionPapelera(item)}`)) return;
+
+            if (!DB[item.arrayKey]) DB[item.arrayKey] = [];
+            DB[item.arrayKey].push(item.registro);
+            DB.papelera.splice(idx, 1);
+
+            saveDB();
+            logActivity('restauración', `${item.tipo} restaurado: ${descripcionPapelera(item)}`);
+
+            renderAllViews();
+            refreshPapelera();
+            alert('✅ Registro restaurado exitosamente');
+        }
+
+        // Eliminar definitivamente un registro de la papelera (solo admin, sin posibilidad de deshacer)
+        function eliminarDefinitivo(papeleraId) {
+            if (currentUser !== 'admin') {
+                alert('Solo el administrador puede eliminar definitivamente');
+                return;
+            }
+
+            const idx = (DB.papelera || []).findIndex(p => p.id === papeleraId);
+            if (idx === -1) return;
+            const item = DB.papelera[idx];
+
+            if (!confirm(`⚠️ Esta acción NO se puede deshacer.\n\n¿Eliminar definitivamente?\n\n${item.tipo}: ${descripcionPapelera(item)}`)) return;
+
+            DB.papelera.splice(idx, 1);
+            saveDB();
+            logActivity('eliminación_definitiva', `${item.tipo} eliminado definitivamente: ${descripcionPapelera(item)}`);
+
+            refreshPapelera();
         }
 
 

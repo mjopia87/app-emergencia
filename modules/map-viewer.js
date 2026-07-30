@@ -252,15 +252,21 @@ class MapViewer {
       // Obtener estilo según urgencia
       const urgencia = emergencia.urgencia || 'bajo';
       const iconConfig = this.config.iconos.emergencia[urgencia] || this.config.iconos.emergencia.bajo;
+      const atendido = emergencia.estadoAtencion === 'atendido';
+
+      // Si el requerimiento ya fue atendido, el marcador se transforma en un ticket
+      const iconoHtml = atendido
+        ? `<div style="font-size: ${iconConfig.size[0]}px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); filter: grayscale(35%); opacity:0.85;">🎫</div>`
+        : `<div style="font-size: ${iconConfig.size[0]}px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">${iconConfig.icon}</div>`;
 
       // Crear marcador
       const marker = L.marker([emergencia.lat, emergencia.lon], {
         icon: L.divIcon({
-          html: `<div style="font-size: ${iconConfig.size[0]}px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">${iconConfig.icon}</div>`,
+          html: iconoHtml,
           iconSize: [40, 40],
           className: 'emergency-marker'
         }),
-        zIndex: 100
+        zIndex: atendido ? 50 : 100
       }).addTo(this.layers.emergencias);
 
       // Popup con información
@@ -518,6 +524,15 @@ class MapViewer {
       bajo: '🟢'
     }[emergencia.urgencia] || '⚪';
 
+    const atendido = emergencia.estadoAtencion === 'atendido';
+    const estadoHtml = atendido
+      ? `🎫 <strong style="color:#27ae60;">Atendido</strong>`
+      : `⏳ <strong style="color:#e67e22;">Pendiente</strong>`;
+
+    const accionHtml = !atendido && typeof window.marcarAtendido === 'function'
+      ? `<button onclick="window.marcarAtendido(${emergencia.id})" style="margin-top:6px;padding:4px 8px;font-size:11px;background:#27ae60;color:#fff;border:none;border-radius:4px;cursor:pointer;">✅ Marcar como Atendido</button>`
+      : '';
+
     return `
       <div style="font-size: 12px;">
         <strong>${urgenciaEmoji} ${emergencia.tipo || 'Emergencia'}</strong><br>
@@ -525,8 +540,10 @@ class MapViewer {
           📞 ${emergencia.nombre || 'Sin nombre'}<br>
           📍 ${emergencia.ubicacion || 'Sin ubicación'}<br>
           🚨 ${emergencia.descripcion?.substring(0, 50) || 'Sin descripción'}...<br>
+          ${estadoHtml}<br>
           ${emergencia.timestamp ? `⏰ ${new Date(emergencia.timestamp).toLocaleTimeString('es-CL')}` : ''}
-        </small>
+        </small><br>
+        ${accionHtml}
       </div>
     `;
   }
