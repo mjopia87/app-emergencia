@@ -3922,11 +3922,23 @@
         }
 
         function obtenerFechaISO(fechaString) {
-            // Convierte "28/7/2026, 10:30:45" a "2026-07-28"
+            // Convierte distintos formatos de fecha usados en la app a "YYYY-MM-DD":
+            //  - ISO ("2026-07-28" o "2026-07-28T...")
+            //  - "DD-MM-YYYY" (el que genera formatearFechaCorta, usado en eg.fecha)
+            //  - "D/M/YYYY, 10:30:45" (formato local de toLocaleString)
             try {
+                if (!fechaString) return '';
+
                 // Si ya es ISO format, retornar
                 if (fechaString.match(/^\d{4}-\d{2}-\d{2}/)) {
                     return fechaString.split('T')[0];
+                }
+
+                // Formato "DD-MM-YYYY" (con guiones, sin coma)
+                const matchGuion = fechaString.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
+                if (matchGuion) {
+                    const [, dia, mes, año] = matchGuion;
+                    return `${año}-${String(mes).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
                 }
 
                 // Parsear formato local "28/7/2026, 10:30:45"
