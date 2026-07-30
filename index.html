@@ -1368,11 +1368,11 @@
                 </div>
 
                 <div style="border-top:1px solid var(--border);padding-top:15px;margin-top:15px;">
-                    <h4 style="margin-bottom:10px;color:var(--primary);">Respaldo Fotográfico</h4>
+                    <h4 style="margin-bottom:10px;color:var(--primary);">Respaldo Acta de Egreso</h4>
                     <div class="form-group">
                         <label>Foto del Acta de Egreso</label>
-                        <input type="file" id="egresoFoto" accept="image/*" style="display:block;width:100%;padding:10px;border:1px solid var(--border);border-radius:4px;">
-                        <small style="color:#7f8c8d;display:block;margin-top:5px;">Puedes agregar la foto ahora o después mediante edición</small>
+                        <input type="file" id="egresoFoto" accept="image/*,.pdf" style="display:block;width:100%;padding:10px;border:1px solid var(--border);border-radius:4px;">
+                        <small style="color:#7f8c8d;display:block;margin-top:5px;">Puedes agregar la foto o PDF ahora o después mediante edición</small>
                     </div>
                 </div>
 
@@ -3650,7 +3650,10 @@
                             <h3>Acta de Egreso - ${egreso.bien}</h3>
                             <button onclick="this.closest('div').parentElement.remove()" style="background:none;border:none;font-size:24px;cursor:pointer;">×</button>
                         </div>
-                        <img src="${egreso.foto}" style="max-width:100%;max-height:70vh;object-fit:contain;">
+                        ${egreso.foto.includes('data:image') ?
+                            `<img src="${egreso.foto}" style="max-width:100%;max-height:70vh;object-fit:contain;">` :
+                            `<embed src="${egreso.foto}" type="application/pdf" style="width:100%;height:70vh;">`
+                        }
                         <div style="margin-top:15px;font-size:12px;color:#7f8c8d;">
                             <p><strong>Bien:</strong> ${egreso.bien}</p>
                             <p><strong>Centro:</strong> ${egreso.centro}</p>
