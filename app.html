@@ -820,9 +820,9 @@
                         </div>
                         <table id="emergenciaTable">
                             <thead>
-                                <tr><th>Contacto</th><th>Tipo</th><th>Ubicación</th><th>Estado</th><th>Acciones</th></tr>
+                                <tr><th>Contacto</th><th>Tipo</th><th>Ubicación</th><th>Estado</th><th>Fecha Ingreso</th><th>Acciones</th></tr>
                             </thead>
-                            <tbody id="emergenciaBody"><tr><td colspan="5" class="empty-state">Sin emergencias</td></tr></tbody>
+                            <tbody id="emergenciaBody"><tr><td colspan="6" class="empty-state">Sin emergencias</td></tr></tbody>
                         </table>
                     </div>
                 </div>
@@ -839,9 +839,9 @@
                         </div>
                         <table id="acopioTable">
                             <thead>
-                                <tr><th>Nombre del bien</th><th>Centro de Acopio</th><th>Cantidad Ingresada</th><th>Unidad de Medida</th><th>Acciones</th></tr>
+                                <tr><th>Nombre del bien</th><th>Centro de Acopio</th><th>Cantidad Ingresada</th><th>Unidad de Medida</th><th>Fecha Ingreso</th><th>Acciones</th></tr>
                             </thead>
-                            <tbody id="acopioBody"><tr><td colspan="5" class="empty-state">Sin items</td></tr></tbody>
+                            <tbody id="acopioBody"><tr><td colspan="6" class="empty-state">Sin items</td></tr></tbody>
                         </table>
                     </div>
 
@@ -884,9 +884,9 @@
                         </div>
                         <table id="beneficiarioTable">
                             <thead>
-                                <tr><th>Nombre</th><th>RUT</th><th>Localidad</th><th>Urgencia</th><th>FIBE</th><th>Respaldo</th><th>Acciones</th></tr>
+                                <tr><th>Nombre</th><th>RUT</th><th>Localidad</th><th>Urgencia</th><th>FIBE</th><th>Respaldo</th><th>Fecha Ingreso</th><th>Acciones</th></tr>
                             </thead>
-                            <tbody id="beneficiarioBody"><tr><td colspan="7" class="empty-state">Sin beneficiarios</td></tr></tbody>
+                            <tbody id="beneficiarioBody"><tr><td colspan="8" class="empty-state">Sin beneficiarios</td></tr></tbody>
                         </table>
                     </div>
                 </div>
@@ -1613,7 +1613,7 @@
         ];
 
         // ===== LOGIN =====
-        const USERS_KEY = 'illapel_users';
+        const USERS_DB_KEY = 'illapel_users_db';
         const USER_KEY = 'illapel_user';
         let currentUser = null;
         let map = null;
@@ -1626,40 +1626,36 @@
         let editandoEmergenciaId = null;
         let editandoEquipoId = null;
 
-        // ===== LOGIN SIMPLE =====
+        // ===== LOGIN (solo usuarios previamente registrados) =====
         function handleLogin(e) {
             e.preventDefault();
             const usuario = document.getElementById('usuarioInput').value.trim();
-            const rut = document.getElementById('rutInput').value.trim();
+            const password = document.getElementById('rutInput').value.trim();
 
-            console.log('🔐 Intento de login:', {usuario, rut});
+            console.log('🔐 Intento de login:', {usuario});
 
-            if (!usuario || !rut) {
+            if (!usuario || !password) {
                 showMsg('❌ Completa ambos campos', 'error');
                 return;
             }
 
-            const users = JSON.parse(localStorage.getItem(USERS_KEY) || '{}');
-            console.log('👤 Usuarios disponibles:', Object.keys(users));
+            const users = JSON.parse(localStorage.getItem(USERS_DB_KEY) || '[]');
+            const userRecord = users.find(u => u.username === usuario);
 
-            if (usuario in users) {
-                console.log('✅ Usuario encontrado. Verificando contraseña...');
-                const userData = typeof users[usuario] === 'string' ? users[usuario] : users[usuario].password || users[usuario];
-
-                if (userData === rut) {
-                    console.log('✅ Contraseña correcta');
-                    loginOk(usuario);
-                } else {
-                    console.log('❌ Contraseña incorrecta');
-                    showMsg('❌ Contraseña incorrecta', 'error');
-                }
-            } else {
-                console.log('📝 Creando nuevo usuario');
-                users[usuario] = rut;
-                localStorage.setItem(USERS_KEY, JSON.stringify(users));
-                showMsg('✓ Usuario creado', 'success');
-                setTimeout(() => loginOk(usuario), 500);
+            if (!userRecord) {
+                console.log('❌ Usuario no registrado');
+                showMsg('❌ Usuario no registrado. Solicita tu acceso al administrador.', 'error');
+                return;
             }
+
+            if (userRecord.password !== password) {
+                console.log('❌ Contraseña incorrecta');
+                showMsg('❌ Contraseña incorrecta', 'error');
+                return;
+            }
+
+            console.log('✅ Login correcto');
+            loginOk(usuario);
         }
 
         function loginOk(usuario) {
@@ -2482,7 +2478,7 @@
         function refreshEmergencias() {
             const tbody = document.getElementById('emergenciaBody');
             if (DB.emergencias.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" class="empty-state">Sin emergencias</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" class="empty-state">Sin emergencias</td></tr>';
                 return;
             }
             tbody.innerHTML = DB.emergencias.map(e => `
@@ -2491,6 +2487,7 @@
                     <td>${e.tipo}</td>
                     <td>${e.direccion || e.ubicacion || 'Sin dirección'}</td>
                     <td><span class="badge badge-${e.urgencia==='critico'?'danger':e.urgencia==='alto'?'warning':'success'}">${e.urgencia}</span></td>
+                    <td>${e.fecha || '-'}</td>
                     <td>
                         <button class="btn btn-info btn-small" onclick="verDetallesEmergencia(${e.id})">👁️ Ver</button>
                         <button class="btn btn-secondary btn-small" onclick="irAlUbicacion(${e.lat}, ${e.lon})">📍</button>
@@ -2748,7 +2745,7 @@
                 centro: document.getElementById('acopioCentro').value,
                 cantidadIngresada: parseInt(document.getElementById('acopioStock').value),
                 tipoUnidad: document.getElementById('acopioTipoUnidad').value,
-                fecha: new Date().toLocaleString()
+                fecha: window.editandoAcopioId ? (DB.acopio.find(a => a.id === window.editandoAcopioId)?.fecha || new Date().toLocaleString()) : new Date().toLocaleString()
             };
 
             const isEditing = !!window.editandoAcopioId;
@@ -2779,7 +2776,7 @@
         function refreshAcopio() {
             const tbody = document.getElementById('acopioBody');
             if (DB.acopio.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" class="empty-state">Sin items</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" class="empty-state">Sin items</td></tr>';
                 return;
             }
             tbody.innerHTML = DB.acopio.map(a => `
@@ -2788,6 +2785,7 @@
                     <td>${a.centro || '-'}</td>
                     <td>${a.cantidadIngresada || a.stock || '-'}</td>
                     <td>${a.tipoUnidad || '-'}</td>
+                    <td>${a.fecha || '-'}</td>
                     <td>
                         <button class="btn btn-secondary btn-small" onclick="editarAcopio(${a.id})">✏️</button>
                         <button class="btn btn-danger btn-small" onclick="deleteAcopio(${a.id})">🗑️</button>
@@ -3824,7 +3822,7 @@
         function refreshBeneficiarios() {
             const tbody = document.getElementById('beneficiarioBody');
             if (DB.beneficiarios.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" class="empty-state">Sin beneficiarios</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" class="empty-state">Sin beneficiarios</td></tr>';
                 return;
             }
             tbody.innerHTML = DB.beneficiarios.map(b => `
@@ -3837,6 +3835,7 @@
                     <td>
                         ${b.acta ? `<button class="btn btn-info btn-small" onclick="verActaBeneficiario(${b.id})">📄</button>` : '<span style="color:#bdc3c7;">-</span>'}
                     </td>
+                    <td>${b.fecha || '-'}</td>
                     <td>
                         <button class="btn btn-info btn-small" onclick="verDetallesBeneficiario(${b.id})">👁️</button>
                         <button class="btn btn-primary btn-small" onclick="irMapaBeneficiario(${b.id})">📍</button>
@@ -5344,15 +5343,24 @@
             alert(`📅 Actividad del ${actividad.fecha}\n\n👤 Encargado: ${actividad.encargado}\n🔧 Tipo: ${actividad.tipo}\n📍 Ubicación: ${actividad.ubicacion}\n\n📋 Descripción:\n${actividad.descripcion}`);
         };
 
-        // Inicializar usuarios por defecto si no existen
+        // Inicializar cuenta admin por defecto si no existe (única cuenta que puede crear usuarios)
         function initializeDefaultUsers() {
-            const users = JSON.parse(localStorage.getItem(USERS_KEY) || '{}');
-            if (Object.keys(users).length === 0) {
-                users['admin'] = 'adminillapel';
-                localStorage.setItem(USERS_KEY, JSON.stringify(users));
-                console.log('✅ Usuario admin creado', users);
+            const users = JSON.parse(localStorage.getItem(USERS_DB_KEY) || '[]');
+            if (!users.find(u => u.username === 'admin')) {
+                users.push({
+                    id: Date.now(),
+                    nombre: 'Administrador',
+                    rut: '-',
+                    username: 'admin',
+                    password: 'adminillapel',
+                    email: '-',
+                    isAdmin: true,
+                    fechaCreacion: new Date().toLocaleString('es-CL')
+                });
+                localStorage.setItem(USERS_DB_KEY, JSON.stringify(users));
+                console.log('✅ Usuario admin creado');
             } else {
-                console.log('📋 Usuarios existentes:', users);
+                console.log('📋 Usuarios existentes:', users.map(u => u.username));
             }
         }
         initializeDefaultUsers();
@@ -5386,7 +5394,6 @@
 
         // ===== SISTEMA DE LOGGING Y USUARIOS =====
         const ACTIVITY_LOG_KEY = 'illapel_activity_log';
-        const USERS_DB_KEY = 'illapel_users_db';
 
         // Inicializar sistema de logging
         function initLoggingSystem() {
@@ -5415,9 +5422,14 @@
         }
 
 
-        // Guardar nuevo usuario (admin only)
+        // Guardar nuevo usuario (solo admin puede crear usuarios)
         function saveNewUser(e) {
             e.preventDefault();
+
+            if (currentUser !== 'admin') {
+                alert('Solo el administrador puede registrar nuevos usuarios');
+                return;
+            }
 
             const nombre = document.getElementById('usuarioNombre').value.trim();
             const rut = document.getElementById('usuarioRut').value.trim();
@@ -5432,9 +5444,9 @@
 
             const users = JSON.parse(localStorage.getItem(USERS_DB_KEY) || '[]');
 
-            // Verificar que el usuario no exista
-            if (users.find(u => u.username === username)) {
-                alert('El nombre de usuario ya existe');
+            // Verificar que el usuario no exista ni sea el nombre reservado 'admin'
+            if (username === 'admin' || users.find(u => u.username === username)) {
+                alert('El nombre de usuario ya existe o está reservado');
                 return;
             }
 
@@ -5445,6 +5457,7 @@
                 username,
                 password,
                 email,
+                isAdmin: false,
                 fechaCreacion: new Date().toLocaleString('es-CL')
             };
 
@@ -5472,24 +5485,35 @@
 
             tbody.innerHTML = users.map(user => `
                 <tr>
-                    <td>${user.nombre}</td>
+                    <td>${user.nombre}${user.username === 'admin' ? ' <span class="badge badge-success">Admin</span>' : ''}</td>
                     <td>${user.rut}</td>
                     <td>${user.username}</td>
                     <td>${user.email}</td>
                     <td>${user.fechaCreacion}</td>
                     <td style="text-align:center;">
-                        <button class="btn btn-sm btn-danger" onclick="deleteUser(${user.id})" style="padding:4px 8px;font-size:12px;">🗑️</button>
+                        ${user.username === 'admin' ? '<span style="color:#bdc3c7;">-</span>' : `<button class="btn btn-sm btn-danger" onclick="deleteUser(${user.id})" style="padding:4px 8px;font-size:12px;">🗑️</button>`}
                     </td>
                 </tr>
             `).join('');
         }
 
-        // Eliminar usuario
+        // Eliminar usuario (no se permite eliminar al administrador, solo el admin puede eliminar usuarios)
         function deleteUser(userId) {
-            if (!confirm('¿Está seguro de eliminar este usuario?')) return;
+            if (currentUser !== 'admin') {
+                alert('Solo el administrador puede eliminar usuarios');
+                return;
+            }
 
             let users = JSON.parse(localStorage.getItem(USERS_DB_KEY) || '[]');
             const user = users.find(u => u.id === userId);
+
+            if (user && user.username === 'admin') {
+                alert('No se puede eliminar la cuenta de administrador');
+                return;
+            }
+
+            if (!confirm('¿Está seguro de eliminar este usuario?')) return;
+
             users = users.filter(u => u.id !== userId);
             localStorage.setItem(USERS_DB_KEY, JSON.stringify(users));
 
