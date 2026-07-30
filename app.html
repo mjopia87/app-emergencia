@@ -5872,12 +5872,22 @@
         }
 
         // Sincronización periódica: refresca los datos compartidos para reflejar
-        // cambios hechos por otros usuarios desde otros dispositivos.
+        // cambios hechos por otros usuarios desde otros dispositivos. Lee cada
+        // sección desde su propia clave (arquitectura actual) en vez del blob
+        // legado illapel_db, que ya no se actualiza. Esto es solo LECTURA:
+        // nunca escribe de vuelta, así que no puede pisar datos de otros.
         setInterval(async () => {
             if (!currentUser) return;
-            const remote = await apiGetKey(DB_KEY);
-            if (remote) {
-                Object.assign(DB, remote);
+            const secciones = Object.keys(SECTION_KEYS);
+            const resultados = await Promise.all(secciones.map(s => apiGetKey(SECTION_KEYS[s])));
+            let huboCambios = false;
+            secciones.forEach((seccion, i) => {
+                if (resultados[i] !== null && resultados[i] !== undefined) {
+                    DB[seccion] = resultados[i];
+                    huboCambios = true;
+                }
+            });
+            if (huboCambios) {
                 localStorage.setItem(DB_KEY, JSON.stringify(DB));
                 renderAllViews();
             }
@@ -6293,7 +6303,16 @@
             document.getElementById('usuarioInput').focus();
         }
 
-        setInterval(saveDB, 10000);
+        // NOTA: antes había aquí un setInterval(saveDB, 10000) que reescribía
+        // TODA la base de datos completa cada 10 segundos desde cada pestaña
+        // abierta. Con 10 usuarios conectados eso son cientos de escrituras a
+        // Cloudflare KV por minuto (agotando la cuota gratuita de 1000
+        // escrituras/día en minutos) y, peor, cada escritura sobrescribía el
+        // servidor con la copia local de esa pestaña -- que podía estar
+        // desactualizada -- borrando altas hechas por otros usuarios mientras
+        // tanto. Ya no es necesario: cada guardado real ahora pasa por
+        // guardarSeccion() en el momento en que el usuario lo hace, con
+        // lectura fresca antes de escribir.
 
         // ===== SISTEMA DE LOGGING Y USUARIOS =====
         const ACTIVITY_LOG_KEY = 'illapel_activity_log';

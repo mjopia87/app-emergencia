@@ -1,4 +1,4 @@
-name: Deploy to Cloudflare Pages
+name: Deploy to Cloudflare Workers
 
 on:
   push:
@@ -13,10 +13,16 @@ jobs:
       deployments: write
     steps:
       - uses: actions/checkout@v3
-      
-      - name: Deploy to Cloudflare Pages
+
+      # Desde que la app pasó a usar un Worker con [assets] + KV (wrangler.toml,
+      # commit 778adc9), el deploy correcto es "wrangler deploy" (lee
+      # wrangler.toml). El comando anterior, "pages deploy", era para el
+      # proyecto estático previo y ya no es compatible con este wrangler.toml
+      # (que define main=worker.js y kv_namespaces, propios de Workers) --
+      # por eso los deploys automáticos venían fallando.
+      - name: Deploy to Cloudflare Workers
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy . --project-name=app-emergencia
+          command: deploy
