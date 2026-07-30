@@ -3,3 +3,8 @@ wrangler.toml
 .git
 .github
 uv_illapel_2024
+node_modules
+migrations
+package.json
+package-lock.json
+.wrangler
