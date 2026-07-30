@@ -2617,8 +2617,8 @@
                     telefono: document.getElementById('emgTel').value,
                     tipo: document.getElementById('emgTipo').value,
                     urgencia: document.getElementById('emgUrgencia').value,
-                    direccion: document.getElementById('emgDireccion').value || 'Sin dirección',
-                    ubicacion: document.getElementById('emgDireccion').value || 'Sin dirección',
+                    direccion: document.getElementById('emgDireccion').value || '',
+                    ubicacion: document.getElementById('emgDireccion').value || '',
                     localidad: document.getElementById('emgLocalidad')?.value || '',
                     descripcion: document.getElementById('emgDesc').value,
                     fecha: window.editandoEmergenciaId ? (DB.emergencias.find(em => em.id === window.editandoEmergenciaId)?.fecha || new Date().toLocaleString()) : new Date().toLocaleString(),
@@ -2673,7 +2673,10 @@
                 <tr>
                     <td>${e.contacto}</td>
                     <td>${e.tipo}</td>
-                    <td>${e.direccion || e.ubicacion || 'Sin dirección'}</td>
+                    <td>${
+                        e.direccion && e.localidad ? `${e.direccion} <span style="color:#95a5a6;">(${e.localidad})</span>`
+                        : e.direccion || e.localidad || e.ubicacion || 'Sin ubicación registrada'
+                    }</td>
                     <td>
                         <span class="badge badge-${e.urgencia==='critico'?'danger':e.urgencia==='alto'?'warning':'success'}">${e.urgencia}</span>
                         <br/>
@@ -2812,7 +2815,7 @@
             contenido += `Teléfono: ${req.telefono || '-'}\\n`;
             contenido += `Tipo: ${req.tipo}\\n`;
             contenido += `Urgencia: ${req.urgencia}\\n`;
-            contenido += `Dirección: ${req.direccion || req.ubicacion || '-'}\\n`;
+            contenido += `Dirección: ${req.direccion || req.ubicacion || req.localidad || '-'}\\n`;
             contenido += `Latitud: ${req.lat}\\n`;
             contenido += `Longitud: ${req.lon}\\n`;
             contenido += `Descripción: ${req.descripcion || '-'}\\n`;
@@ -6704,7 +6707,7 @@
                             contacto: e.contacto,
                             telefono: e.telefono || '-',
                             tipo: e.tipo,
-                            direccion: e.direccion || 'Sin dirección',
+                            direccion: e.direccion || e.localidad || 'Sin ubicación registrada',
                             urgencia: e.urgencia,
                             descripcion: e.descripcion || '-',
                             fechaRegistro: e.fechaRegistro || new Date().toLocaleString()
@@ -6731,7 +6734,7 @@
                         e.contacto,
                         e.telefono || '-',
                         e.tipo,
-                        e.direccion || 'Sin dirección',
+                        e.direccion || e.localidad || 'Sin ubicación registrada',
                         e.urgencia
                     ]);
 
