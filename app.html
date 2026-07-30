@@ -1635,7 +1635,7 @@
         let editandoEquipoId = null;
 
         // ===== LOGIN (solo usuarios previamente registrados) =====
-        function handleLogin(e) {
+        async function handleLogin(e) {
             e.preventDefault();
             const usuario = document.getElementById('usuarioInput').value.trim();
             const password = document.getElementById('rutInput').value.trim();
@@ -1647,7 +1647,12 @@
                 return;
             }
 
-            const users = JSON.parse(localStorage.getItem(USERS_DB_KEY) || '[]');
+            // Traer la lista de usuarios más reciente desde el servidor compartido,
+            // para reconocer cuentas creadas desde otros dispositivos.
+            const remoteUsers = await apiGetKey(USERS_DB_KEY);
+            const users = remoteUsers || JSON.parse(localStorage.getItem(USERS_DB_KEY) || '[]');
+            if (remoteUsers) localStorage.setItem(USERS_DB_KEY, JSON.stringify(remoteUsers));
+
             const userRecord = users.find(u => u.username === usuario);
 
             if (!userRecord) {
@@ -1709,6 +1714,33 @@
             setTimeout(() => el.classList.remove('show'), 3000);
         }
 
+        // ===== SINCRONIZACIÓN CON SERVIDOR COMPARTIDO (Cloudflare Worker + KV) =====
+        // Permite que todos los usuarios, desde cualquier dispositivo, vean los mismos datos.
+        const API_KV_BASE = '/api/kv/';
+
+        async function apiGetKey(key) {
+            try {
+                const res = await fetch(API_KV_BASE + encodeURIComponent(key));
+                if (!res.ok) return null;
+                return await res.json();
+            } catch (err) {
+                console.warn('⚠️ Sin conexión al servidor, usando datos locales:', err);
+                return null;
+            }
+        }
+
+        async function apiPutKey(key, value) {
+            try {
+                await fetch(API_KV_BASE + encodeURIComponent(key), {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(value)
+                });
+            } catch (err) {
+                console.warn('⚠️ No se pudo sincronizar con el servidor (se guardó localmente):', err);
+            }
+        }
+
         // ===== DATA =====
         const DB = {
             emergencias: [],
@@ -1725,11 +1757,20 @@
         };
         const DB_KEY = 'illapel_db';
 
-        function loadDB() {
-            // Intentar cargar de la nueva clave consolidada
+        async function loadDB() {
+            // Intentar traer la versión más reciente compartida desde el servidor
+            const remote = await apiGetKey(DB_KEY);
+            if (remote) {
+                Object.assign(DB, remote);
+                localStorage.setItem(DB_KEY, JSON.stringify(DB));
+                return;
+            }
+
+            // Sin datos remotos: usar copia local y subirla al servidor
             const data = localStorage.getItem(DB_KEY);
             if (data) {
                 Object.assign(DB, JSON.parse(data));
+                apiPutKey(DB_KEY, DB);
                 return;
             }
 
@@ -1761,6 +1802,7 @@
 
         function saveDB() {
             localStorage.setItem(DB_KEY, JSON.stringify(DB));
+            apiPutKey(DB_KEY, DB);
         }
 
         // ===== MAPA =====
@@ -2294,6 +2336,20 @@
                 setTimeout(() => {
                     if (window.map) window.map.invalidateSize();
                 }, 100);
+            }
+
+            // Al abrir los paneles de admin, traer la versión más reciente del servidor
+            if (view === 'usuarios') {
+                apiGetKey(USERS_DB_KEY).then(remote => {
+                    if (remote) localStorage.setItem(USERS_DB_KEY, JSON.stringify(remote));
+                    refreshUsuarios();
+                });
+            }
+            if (view === 'actividades') {
+                apiGetKey(ACTIVITY_LOG_KEY).then(remote => {
+                    if (remote) localStorage.setItem(ACTIVITY_LOG_KEY, JSON.stringify(remote));
+                    refreshActividades();
+                });
             }
         }
 
@@ -5001,9 +5057,7 @@
         }
 
         // ===== INIT =====
-        async function loadAllData() {
-            loadDB();
-            await importarVehiculos(); // Esperar a que se importen los datos de vehículos
+        function renderAllViews() {
             refreshEmergencias();
             refreshAcopio();
             refreshEgresos();
@@ -5032,6 +5086,24 @@
                 }, 100);
             }
         }
+
+        async function loadAllData() {
+            await loadDB();
+            await importarVehiculos(); // Esperar a que se importen los datos de vehículos
+            renderAllViews();
+        }
+
+        // Sincronización periódica: refresca los datos compartidos para reflejar
+        // cambios hechos por otros usuarios desde otros dispositivos.
+        setInterval(async () => {
+            if (!currentUser) return;
+            const remote = await apiGetKey(DB_KEY);
+            if (remote) {
+                Object.assign(DB, remote);
+                localStorage.setItem(DB_KEY, JSON.stringify(DB));
+                renderAllViews();
+            }
+        }, 15000);
 
         document.getElementById('sectorSelect').addEventListener('change', refreshChat);
         document.getElementById('chatInput').addEventListener('keypress', (e) => {
@@ -5387,9 +5459,17 @@
             alert(`📅 Actividad del ${actividad.fecha}\n\n👤 Encargado: ${actividad.encargado}\n🔧 Tipo: ${actividad.tipo}\n📍 Ubicación: ${actividad.ubicacion}\n\n📋 Descripción:\n${actividad.descripcion}`);
         };
 
+        // Guarda la lista de usuarios local y remotamente (servidor compartido)
+        function saveUsersDB(users) {
+            localStorage.setItem(USERS_DB_KEY, JSON.stringify(users));
+            apiPutKey(USERS_DB_KEY, users);
+        }
+
         // Inicializar cuenta admin por defecto si no existe (única cuenta que puede crear usuarios)
-        function initializeDefaultUsers() {
-            const users = JSON.parse(localStorage.getItem(USERS_DB_KEY) || '[]');
+        async function initializeDefaultUsers() {
+            const remoteUsers = await apiGetKey(USERS_DB_KEY);
+            const users = remoteUsers || JSON.parse(localStorage.getItem(USERS_DB_KEY) || '[]');
+
             if (!users.find(u => u.username === 'admin')) {
                 users.push({
                     id: Date.now(),
@@ -5401,11 +5481,12 @@
                     isAdmin: true,
                     fechaCreacion: new Date().toLocaleString('es-CL')
                 });
-                localStorage.setItem(USERS_DB_KEY, JSON.stringify(users));
                 console.log('✅ Usuario admin creado');
             } else {
                 console.log('📋 Usuarios existentes:', users.map(u => u.username));
             }
+
+            saveUsersDB(users);
         }
         initializeDefaultUsers();
 
@@ -5450,6 +5531,11 @@
         }
 
         // Registrar actividad en el log
+        function saveActivityLog(log) {
+            localStorage.setItem(ACTIVITY_LOG_KEY, JSON.stringify(log));
+            apiPutKey(ACTIVITY_LOG_KEY, log);
+        }
+
         function logActivity(action, details) {
             const log = JSON.parse(localStorage.getItem(ACTIVITY_LOG_KEY) || '[]');
             const timestamp = new Date().toLocaleString('es-CL');
@@ -5462,7 +5548,7 @@
                 date: new Date().toISOString()
             };
             log.push(activity);
-            localStorage.setItem(ACTIVITY_LOG_KEY, JSON.stringify(log));
+            saveActivityLog(log);
         }
 
 
@@ -5519,7 +5605,7 @@
         }
 
         // Guardar usuario nuevo o editado (solo admin)
-        function saveNewUser(e) {
+        async function saveNewUser(e) {
             e.preventDefault();
 
             if (currentUser !== 'admin') {
@@ -5539,7 +5625,9 @@
                 return;
             }
 
-            const users = JSON.parse(localStorage.getItem(USERS_DB_KEY) || '[]');
+            // Traer la lista más reciente del servidor antes de modificarla
+            const remoteUsers = await apiGetKey(USERS_DB_KEY);
+            const users = remoteUsers || JSON.parse(localStorage.getItem(USERS_DB_KEY) || '[]');
 
             if (editId) {
                 // ===== EDITAR usuario existente =====
@@ -5574,7 +5662,7 @@
                     password: password ? password : original.password
                 };
 
-                localStorage.setItem(USERS_DB_KEY, JSON.stringify(users));
+                saveUsersDB(users);
                 logActivity('edición_usuario', `Usuario editado: ${finalUsername}`);
                 alert('Usuario actualizado exitosamente');
             } else {
@@ -5602,7 +5690,7 @@
                 };
 
                 users.push(newUser);
-                localStorage.setItem(USERS_DB_KEY, JSON.stringify(users));
+                saveUsersDB(users);
                 logActivity('creación_usuario', `Usuario creado: ${username}`);
                 alert('Usuario creado exitosamente');
             }
@@ -5640,13 +5728,14 @@
         }
 
         // Eliminar usuario (no se permite eliminar al administrador, solo el admin puede eliminar usuarios)
-        function deleteUser(userId) {
+        async function deleteUser(userId) {
             if (currentUser !== 'admin') {
                 alert('Solo el administrador puede eliminar usuarios');
                 return;
             }
 
-            let users = JSON.parse(localStorage.getItem(USERS_DB_KEY) || '[]');
+            const remoteUsers = await apiGetKey(USERS_DB_KEY);
+            let users = remoteUsers || JSON.parse(localStorage.getItem(USERS_DB_KEY) || '[]');
             const user = users.find(u => u.id === userId);
 
             if (user && user.username === 'admin') {
@@ -5657,7 +5746,7 @@
             if (!confirm('¿Está seguro de eliminar este usuario?')) return;
 
             users = users.filter(u => u.id !== userId);
-            localStorage.setItem(USERS_DB_KEY, JSON.stringify(users));
+            saveUsersDB(users);
 
             logActivity('eliminación_usuario', `Usuario eliminado: ${user?.username}`);
             refreshUsuarios();
