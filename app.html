@@ -927,20 +927,8 @@
 
                 <!-- MÓVILES -->
                 <div id="moviles">
-                    <!-- GESTIÓN DE MÓVILES -->
-                    <div class="card">
-                        <div class="card-title">🚙 Gestión de Móviles</div>
-                        <button class="btn btn-primary" onclick="openModal('nuevoMovilModal')">+ Nuevo Móvil</button>
-                        <table id="movilTable">
-                            <thead>
-                                <tr><th>PPU</th><th>Tipo</th><th>Marca</th><th>Modelo</th><th>Año</th><th>Combustible</th><th>Chofer Base</th><th>Acciones</th></tr>
-                            </thead>
-                            <tbody id="movilBody"><tr><td colspan="8" class="empty-state">Sin móviles registrados</td></tr></tbody>
-                        </table>
-                    </div>
-
                     <!-- AGENDA DE TRABAJO MÓVILES -->
-                    <div class="card" style="margin-top:20px;">
+                    <div class="card">
                         <div class="card-title">📅 Agenda de Trabajo - Móviles</div>
                         <div style="display:flex;gap:20px;margin-bottom:20px;">
                             <div style="flex:1;">
@@ -955,6 +943,23 @@
                                     <tbody id="actividadMovilBody"><tr><td colspan="6" class="empty-state">Sin actividades</td></tr></tbody>
                                 </table>
                             </div>
+                        </div>
+                    </div>
+
+                    <!-- GESTIÓN DE MÓVILES (sección contraída/plegable) -->
+                    <div class="card" style="margin-top:20px;">
+                        <div class="card-title" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;margin-bottom:0;" onclick="toggleGestionMoviles()">
+                            <span>🚙 Gestión de Móviles</span>
+                            <span id="gestionMovilesToggleIcon" style="font-size:14px;">▶</span>
+                        </div>
+                        <div id="gestionMovilesContent" style="display:none;margin-top:15px;">
+                            <button class="btn btn-primary" onclick="openModal('nuevoMovilModal')">+ Nuevo Móvil</button>
+                            <table id="movilTable">
+                                <thead>
+                                    <tr><th>PPU</th><th>Tipo</th><th>Marca</th><th>Modelo</th><th>Año</th><th>Combustible</th><th>Chofer Base</th><th>Acciones</th></tr>
+                                </thead>
+                                <tbody id="movilBody"><tr><td colspan="8" class="empty-state">Sin móviles registrados</td></tr></tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
@@ -2241,6 +2246,15 @@
 
         function initMapClickListener() {
             setupMapClickListener();
+        }
+
+        // Plegar/desplegar la sección "Gestión de Móviles"
+        function toggleGestionMoviles() {
+            const content = document.getElementById('gestionMovilesContent');
+            const icon = document.getElementById('gestionMovilesToggleIcon');
+            const isHidden = content.style.display === 'none';
+            content.style.display = isHidden ? 'block' : 'none';
+            icon.textContent = isHidden ? '▼' : '▶';
         }
 
         // ===== VISTAS =====
