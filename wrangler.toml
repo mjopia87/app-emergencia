@@ -6,6 +6,19 @@ compatibility_date = "2026-07-30"
 directory = "."
 binding = "ASSETS"
 
+# Almacén principal de datos compartidos (reemplaza a Workers KV: el plan
+# gratis de KV solo permite 1.000 escrituras/día, insuficiente con varios
+# usuarios conectados a la vez; D1 gratis permite 100.000/día). Base de
+# datos y tabla kv_store (migrations/0001_init.sql) ya creadas en Cloudflare.
+[[d1_databases]]
+binding = "DB"
+database_name = "app-emergencia-db"
+database_id = "ffe90c80-4935-4c3c-a469-a36c6ed983fc"
+
+# Se mantiene temporalmente como respaldo de lectura: si una clave todavía
+# no existe en D1 (por ejemplo, justo después de migrar), el worker la
+# busca acá y la copia a D1. Se puede quitar una vez que todas las claves
+# illapel_* ya estén en D1 (worker.js lo maneja solo si este binding falta).
 [[kv_namespaces]]
 binding = "APP_KV"
 id = "78ef238981024e63b649db88eac1751f"
