@@ -1000,7 +1000,7 @@
                         </div>
                         <div class="stat-box" style="background:linear-gradient(135deg,#27ae60,#1e8449);">
                             <div class="stat-number" id="statAtendidos">0</div>
-                            <div class="stat-label">🎫 Atendidos</div>
+                            <div class="stat-label">✅ Atendidos</div>
                         </div>
                         <div class="stat-box" style="background:linear-gradient(135deg,#e67e22,#ca6f1e);">
                             <div class="stat-number" id="statPendientes">0</div>
@@ -2590,7 +2590,7 @@
                     <td>
                         <span class="badge badge-${e.urgencia==='critico'?'danger':e.urgencia==='alto'?'warning':'success'}">${e.urgencia}</span>
                         <br/>
-                        <span class="badge" style="margin-top:4px;background:${atendido ? '#27ae60' : '#e67e22'};color:#fff;">${atendido ? '🎫 Atendido' : '⏳ Pendiente'}</span>
+                        <span class="badge" style="margin-top:4px;background:${atendido ? '#27ae60' : '#e67e22'};color:#fff;">${atendido ? '✅ Atendido' : '⏳ Pendiente'}</span>
                     </td>
                     <td>${e.fecha || '-'}</td>
                     <td>
@@ -4495,11 +4495,19 @@
 
         function actualizarSelectMoviles() {
             const select = document.getElementById('actMovilTipo');
+            if (!select) return;
+            // Preservar la selección actual: esta función se llama periódicamente
+            // (polling cada 15s) y no debe borrar lo que el usuario ya eligió
+            // mientras tiene el modal de actividad abierto.
+            const valorActual = select.value;
             select.innerHTML = '<option value="">-- Seleccionar --</option>';
             DB.moviles.forEach(movil => {
                 const label = `${movil.ppu} - ${movil.tipo} (${movil.marca} ${movil.modelo})`;
                 select.innerHTML += `<option value="${movil.id}" data-tipo="${movil.tipo}">${label}</option>`;
             });
+            if (valorActual && select.querySelector(`option[value="${valorActual}"]`)) {
+                select.value = valorActual;
+            }
         }
 
         function actualizarPPUMovil() {
@@ -4880,8 +4888,16 @@
         // ===== AGENDA DE EQUIPOS =====
         function actualizarSelectEncargados() {
             const select = document.getElementById('actEncargado');
+            if (!select) return;
+            // Preservar la selección actual: esta función se llama periódicamente
+            // (polling cada 15s) y no debe borrar lo que el usuario ya eligió
+            // mientras tiene el modal de actividad abierto.
+            const valorActual = select.value;
             const opciones = DB.equipos.map(e => `<option value="${e.id}" data-tipo="${e.tipo}" data-encargado="${e.encargado}">${e.encargado} (${e.tipo})</option>`).join('');
             select.innerHTML = '<option value="">-- Seleccionar --</option>' + opciones;
+            if (valorActual && select.querySelector(`option[value="${valorActual}"]`)) {
+                select.value = valorActual;
+            }
         }
 
         function actualizarSelectLocalidadesActividad() {
@@ -5282,7 +5298,7 @@
                 return totalB - totalA;
             }).slice(0, 12);
 
-            if (window.reporteRequerimientosChart) window.reporteRequerimientosChart.destroy();
+            if (window.reporteRequerimientosChart && typeof window.reporteRequerimientosChart.destroy === 'function') window.reporteRequerimientosChart.destroy();
             const ctxReq = document.getElementById('reporteRequerimientosChart');
             if (ctxReq) {
                 window.reporteRequerimientosChart = new Chart(ctxReq, {
@@ -5290,7 +5306,7 @@
                     data: {
                         labels: localidadesReq,
                         datasets: [
-                            { label: '🎫 Atendidos', data: localidadesReq.map(l => porLocalidad[l].atendidos), backgroundColor: '#27ae60' },
+                            { label: '✅ Atendidos', data: localidadesReq.map(l => porLocalidad[l].atendidos), backgroundColor: '#27ae60' },
                             { label: '⏳ Pendientes', data: localidadesReq.map(l => porLocalidad[l].pendientes), backgroundColor: '#e67e22' }
                         ]
                     },
@@ -5309,7 +5325,7 @@
                 if (item.urgencia && urgencias.hasOwnProperty(item.urgencia)) urgencias[item.urgencia]++;
             });
 
-            if (window.reporteUrgenciaChart) window.reporteUrgenciaChart.destroy();
+            if (window.reporteUrgenciaChart && typeof window.reporteUrgenciaChart.destroy === 'function') window.reporteUrgenciaChart.destroy();
             const ctxUrg = document.getElementById('reporteUrgenciaChart');
             if (ctxUrg) {
                 window.reporteUrgenciaChart = new Chart(ctxUrg, {
@@ -5342,7 +5358,7 @@
                 .sort((a, b) => (ingresosPorItem[b] || 0) - (ingresosPorItem[a] || 0))
                 .slice(0, 8);
 
-            if (window.reporteAcopioChart) window.reporteAcopioChart.destroy();
+            if (window.reporteAcopioChart && typeof window.reporteAcopioChart.destroy === 'function') window.reporteAcopioChart.destroy();
             const ctxAcopio = document.getElementById('reporteAcopioChart');
             if (ctxAcopio) {
                 window.reporteAcopioChart = new Chart(ctxAcopio, {
@@ -5372,7 +5388,7 @@
             });
             const destinos = Object.keys(egresoPorDestino).sort((a, b) => egresoPorDestino[b] - egresoPorDestino[a]).slice(0, 8);
 
-            if (window.reporteEgresoLocalidadChart) window.reporteEgresoLocalidadChart.destroy();
+            if (window.reporteEgresoLocalidadChart && typeof window.reporteEgresoLocalidadChart.destroy === 'function') window.reporteEgresoLocalidadChart.destroy();
             const ctxEgresoLoc = document.getElementById('reporteEgresoLocalidadChart');
             if (ctxEgresoLoc) {
                 window.reporteEgresoLocalidadChart = new Chart(ctxEgresoLoc, {
@@ -5406,7 +5422,7 @@
             });
             const dias = Object.keys(porDia).sort().slice(-14);
 
-            if (window.reporteDespliegueChart) window.reporteDespliegueChart.destroy();
+            if (window.reporteDespliegueChart && typeof window.reporteDespliegueChart.destroy === 'function') window.reporteDespliegueChart.destroy();
             const ctxDespliegue = document.getElementById('reporteDespliegueChart');
             if (ctxDespliegue) {
                 window.reporteDespliegueChart = new Chart(ctxDespliegue, {

@@ -254,9 +254,9 @@ class MapViewer {
       const iconConfig = this.config.iconos.emergencia[urgencia] || this.config.iconos.emergencia.bajo;
       const atendido = emergencia.estadoAtencion === 'atendido';
 
-      // Si el requerimiento ya fue atendido, el marcador se transforma en un ticket
+      // Si el requerimiento ya fue atendido, el marcador se transforma en un check verde
       const iconoHtml = atendido
-        ? `<div style="font-size: ${iconConfig.size[0]}px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); filter: grayscale(35%); opacity:0.85;">🎫</div>`
+        ? `<div style="width:${iconConfig.size[0]}px;height:${iconConfig.size[0]}px;filter:drop-shadow(1px 2px 2px rgba(0,0,0,0.4));"><svg viewBox="0 0 36 36" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg"><circle cx="18" cy="18" r="17" fill="#27ae60" stroke="#fff" stroke-width="2"/><path d="M10 18.5 L15.5 24 L26 12" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>`
         : `<div style="font-size: ${iconConfig.size[0]}px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">${iconConfig.icon}</div>`;
 
       // Crear marcador
@@ -526,7 +526,7 @@ class MapViewer {
 
     const atendido = emergencia.estadoAtencion === 'atendido';
     const estadoHtml = atendido
-      ? `🎫 <strong style="color:#27ae60;">Atendido</strong>`
+      ? `✅ <strong style="color:#27ae60;">Atendido</strong>`
       : `⏳ <strong style="color:#e67e22;">Pendiente</strong>`;
 
     const accionHtml = !atendido && typeof window.marcarAtendido === 'function'
