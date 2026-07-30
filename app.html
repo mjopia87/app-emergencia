@@ -832,7 +832,7 @@
                     <div class="card">
                         <div class="card-title">📦 Centro de Acopio - Ingresos</div>
                         <div style="display:flex;gap:10px;margin-bottom:15px;">
-                            <button class="btn btn-primary" onclick="openModal('acopioModal')">+ Nuevo Item</button>
+                            <button class="btn btn-primary" onclick="abrirModalAcopio()">+ Nuevo Item</button>
                             <button class="btn btn-outline" onclick="descargarPlantillaAcopio()">📥 Descargar Plantilla</button>
                             <button class="btn btn-outline" onclick="abrirCargaPlantilla()">📤 Cargar Plantilla</button>
                             <input type="file" id="archivoPlantillaAcopio" accept=".xlsx,.xls" style="display:none;" onchange="procesarPlantillaAcopio()">
@@ -850,9 +850,9 @@
                         <button class="btn btn-primary" onclick="openEgresoModal()">+ Nuevo Egreso</button>
                         <table id="egresoTable">
                             <thead>
-                                <tr><th>Bien</th><th>Centro</th><th>Cantidad</th><th>Entrega</th><th>Retira</th><th>Destino</th><th>Respaldo</th><th>Acciones</th></tr>
+                                <tr><th>Bien</th><th>Centro</th><th>Cantidad</th><th>Entrega</th><th>Retira</th><th>Destino</th><th>Fecha Egreso</th><th>Respaldo</th><th>Acciones</th></tr>
                             </thead>
-                            <tbody id="egresoBody"><tr><td colspan="8" class="empty-state">Sin egresos</td></tr></tbody>
+                            <tbody id="egresoBody"><tr><td colspan="9" class="empty-state">Sin egresos</td></tr></tbody>
                         </table>
                     </div>
 
@@ -1150,6 +1150,7 @@
             <form onsubmit="saveAcopio(event)">
                 <div class="form-group"><label>Nombre del bien *</label><input type="text" id="acopioNombre" required></div>
                 <div class="form-group"><label>Centro de Acopio *</label><select id="acopioCentro" required><option value="">-- Seleccionar --</option><option value="Liceo DOR">Liceo DOR</option><option value="Escuela JCR">Escuela JCR</option><option value="Plaza de Abastos">Plaza de Abastos</option></select></div>
+                <div class="form-group"><label>Fecha de Ingreso *</label><input type="date" id="acopioFecha" required></div>
                 <div class="form-row">
                     <div class="form-group"><label>Cantidad Ingresada *</label><input type="number" id="acopioStock" min="0" required></div>
                     <div class="form-group"><label>Unidad de Medida *</label><select id="acopioTipoUnidad" required><option value="">-- Seleccionar --</option><option value="Kg">Kg</option><option value="Unidad">Unidad</option><option value="CM">CM</option><option value="M">M</option><option value="M3">M3</option><option value="CC">CC</option><option value="L">L</option><option value="Caja">Caja</option><option value="Bolsa">Bolsa</option><option value="Paquete">Paquete</option></select></div>
@@ -1168,6 +1169,7 @@
             <form onsubmit="saveEgreso(event)">
                 <div class="form-group"><label>Bien *</label><select id="egresoBien" required><option value="">-- Seleccionar --</option></select></div>
                 <div class="form-group"><label>Centro de Acopio *</label><select id="egresoCentro" required><option value="">-- Seleccionar --</option><option value="Liceo DOR">Liceo DOR</option><option value="Escuela JCR">Escuela JCR</option><option value="Plaza de Abastos">Plaza de Abastos</option></select></div>
+                <div class="form-group"><label>Fecha de Egreso *</label><input type="date" id="egresoFecha" required></div>
                 <div class="form-group"><label>Cantidad a Retirar *</label><input type="number" id="egresoCantidad" min="1" required></div>
 
                 <div style="border-top:1px solid var(--border);padding-top:15px;margin-top:15px;">
@@ -2752,15 +2754,33 @@
         }
 
         // ===== ACOPIO =====
+        // Formatea una fecha tipo input date (YYYY-MM-DD) a DD-MM-YYYY para mostrar en tablas
+        function formatearFechaCorta(isoDate) {
+            if (!isoDate) return '-';
+            const [y, m, d] = isoDate.split('-');
+            return `${d}-${m}-${y}`;
+        }
+
+        // Abre el modal de "Nuevo Item Acopio" con la fecha de hoy precargada
+        function abrirModalAcopio() {
+            window.editandoAcopioId = null;
+            document.getElementById('acopioModal').querySelector('form').reset();
+            document.getElementById('acopioFecha').value = new Date().toISOString().split('T')[0];
+            openModal('acopioModal');
+        }
+
         function saveAcopio(e) {
             e.preventDefault();
+
+            const fechaIngreso = document.getElementById('acopioFecha').value;
 
             const acopioData = {
                 nombre: document.getElementById('acopioNombre').value,
                 centro: document.getElementById('acopioCentro').value,
                 cantidadIngresada: parseInt(document.getElementById('acopioStock').value),
                 tipoUnidad: document.getElementById('acopioTipoUnidad').value,
-                fecha: window.editandoAcopioId ? (DB.acopio.find(a => a.id === window.editandoAcopioId)?.fecha || new Date().toLocaleString()) : new Date().toLocaleString()
+                fechaIngreso: fechaIngreso,
+                fecha: formatearFechaCorta(fechaIngreso)
             };
 
             const isEditing = !!window.editandoAcopioId;
@@ -2817,6 +2837,7 @@
             document.getElementById('acopioCentro').value = acopio.centro;
             document.getElementById('acopioStock').value = acopio.cantidadIngresada || acopio.stock;
             document.getElementById('acopioTipoUnidad').value = acopio.tipoUnidad;
+            document.getElementById('acopioFecha').value = acopio.fechaIngreso || new Date().toISOString().split('T')[0];
 
             window.editandoAcopioId = id;
             openModal('acopioModal');
@@ -2936,13 +2957,15 @@
                         }
 
                         // Crear objeto acopio
+                        const fechaIngresoPlantilla = new Date().toISOString().split('T')[0];
                         const acopio = {
                             id: Date.now() + Math.random(),
                             nombre: nombre,
                             centro: centro,
                             cantidadIngresada: cantidad,
                             tipoUnidad: unidad,
-                            fecha: new Date().toLocaleString()
+                            fechaIngreso: fechaIngresoPlantilla,
+                            fecha: formatearFechaCorta(fechaIngresoPlantilla)
                         };
 
                         DB.acopio.push(acopio);
@@ -3032,6 +3055,7 @@
             document.getElementById('egresoDestinoUrbano').style.display = 'none';
             document.getElementById('egresoDestinoRural').style.display = 'none';
             document.getElementById('egresoCoordDisplay').textContent = 'Sin coordenadas';
+            document.getElementById('egresoFecha').value = new Date().toISOString().split('T')[0];
             openModal('egresoModal');
         }
 
@@ -3111,6 +3135,8 @@
                 destino = document.getElementById('egresoLocalidad').value;
             }
 
+            const fechaEgreso = document.getElementById('egresoFecha').value;
+
             const egresoData = {
                 bien: document.getElementById('egresoBien').value,
                 centro: document.getElementById('egresoCentro').value,
@@ -3129,7 +3155,8 @@
                 destino: destino,
                 lat: document.getElementById('egresoLat').value ? parseFloat(document.getElementById('egresoLat').value) : null,
                 lon: document.getElementById('egresoLon').value ? parseFloat(document.getElementById('egresoLon').value) : null,
-                fecha: new Date().toLocaleString()
+                fechaEgreso: fechaEgreso,
+                fecha: formatearFechaCorta(fechaEgreso)
             };
 
             const isEditing = !!window.editandoEgresoId;
@@ -3162,7 +3189,7 @@
         function refreshEgresos() {
             const tbody = document.getElementById('egresoBody');
             if (DB.egresos.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" class="empty-state">Sin egresos</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="9" class="empty-state">Sin egresos</td></tr>';
                 return;
             }
             tbody.innerHTML = DB.egresos.map(eg => `
@@ -3173,6 +3200,7 @@
                     <td>${eg.entrega.nombre || '-'}</td>
                     <td>${eg.retira.nombre || '-'}</td>
                     <td>${eg.destino || '-'}</td>
+                    <td>${eg.fecha || '-'}</td>
                     <td>
                         ${eg.foto ? `<button class="btn btn-info btn-small" onclick="verFotoEgreso(${eg.id})">📷</button>` : '<span style="color:#bdc3c7;">-</span>'}
                     </td>
@@ -3234,6 +3262,7 @@
                 document.getElementById('egresoRetiraRut').value = egreso.retira.rut;
                 document.getElementById('egresoRetiraUnidad').value = egreso.retira.unidad;
                 document.getElementById('egresoDestino').value = egreso.destino;
+                document.getElementById('egresoFecha').value = egreso.fechaEgreso || new Date().toISOString().split('T')[0];
 
                 // Coordenadas si existen
                 if (egreso.lat) document.getElementById('egresoLat').value = egreso.lat;
