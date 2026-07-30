@@ -1355,7 +1355,7 @@
                     <div id="egresoDestinoRural" style="display:none;">
                         <div class="form-group">
                             <label>Localidad *</label>
-                            <select id="egresoLocalidad"><option value="">-- Seleccionar --</option></select>
+                            <select id="egresoLocalidad" onchange="actualizarCoordsDesdeLocalidad('egresoLocalidad','egresoLat','egresoLon','egresoCoordDisplay')"><option value="">-- Seleccionar --</option></select>
                         </div>
                     </div>
                     <div style="border-top:1px solid var(--border);padding-top:15px;margin-top:15px;">
@@ -1393,7 +1393,7 @@
                     <div class="form-group"><label>RUT *</label><input type="text" id="benRut" required></div>
                     <div class="form-group"><label>Urgencia *</label><select id="benUrgencia" required><option value="critico">Crítico</option><option value="medio">Medio</option><option value="bajo">Bajo</option></select></div>
                 </div>
-                <div class="form-group"><label>Localidad *</label><select id="benLocalidad" required><option value="">-- Seleccionar --</option></select></div>
+                <div class="form-group"><label>Localidad *</label><select id="benLocalidad" required onchange="actualizarCoordsDesdeLocalidad('benLocalidad','benLat','benLon','benCoordDisplay')"><option value="">-- Seleccionar --</option></select></div>
                 <div class="form-group"><label>Domicilio (si es Sector Urbano)</label><input type="text" id="benDomicilio" placeholder="Ej: Calle Principal 123"></div>
 
                 <div style="border-top:1px solid var(--border);padding-top:15px;margin-top:15px;">
@@ -1518,7 +1518,7 @@
                 <div id="campoLocalidad" style="display:none;">
                     <div class="form-group">
                         <label>Localidad</label>
-                        <select id="actLocalidad">
+                        <select id="actLocalidad" onchange="actualizarCoordsDesdeLocalidad('actLocalidad','actLat','actLon','actCoordDisplay')">
                             <option value="">-- Seleccionar --</option>
                         </select>
                     </div>
@@ -1714,7 +1714,7 @@
                 <div id="campoLocalidadMovil" style="display:none;">
                     <div class="form-group">
                         <label>Localidad</label>
-                        <select id="actMovilLocalidad">
+                        <select id="actMovilLocalidad" onchange="actualizarCoordsDesdeLocalidad('actMovilLocalidad','actMovilLat','actMovilLon','movilCoordDisplay')">
                             <option value="">-- Seleccionar --</option>
                         </select>
                     </div>
@@ -2997,6 +2997,36 @@
             }
         }
 
+        // Helper genérico: cuando se elige una localidad desde un <select> con
+        // opciones que traen data-lat/data-lon, copia esas coordenadas a los
+        // campos de lat/lon correspondientes (y opcionalmente actualiza un
+        // texto de estado). Se usa en Beneficiarios, Egreso, Actividad de
+        // Equipo y Actividad de Móvil, que antes no georreferenciaban nada al
+        // elegir una localidad por nombre.
+        function actualizarCoordsDesdeLocalidad(selectId, latId, lonId, statusId) {
+            const select = document.getElementById(selectId);
+            if (!select || !select.value) return;
+
+            const option = select.options[select.selectedIndex];
+            const lat = option.dataset.lat;
+            const lon = option.dataset.lon;
+            if (!lat || !lon) return;
+
+            const latField = document.getElementById(latId);
+            const lonField = document.getElementById(lonId);
+            if (latField) latField.value = lat;
+            if (lonField) lonField.value = lon;
+
+            if (statusId) {
+                const statusEl = document.getElementById(statusId);
+                if (statusEl) {
+                    statusEl.innerHTML = `✓ Ubicación: [${parseFloat(lat).toFixed(5)}, ${parseFloat(lon).toFixed(5)}]`;
+                    statusEl.style.color = '#27ae60';
+                }
+            }
+            console.log(`📍 Coordenadas actualizadas desde localidad (${selectId}): [${lat}, ${lon}]`);
+        }
+
         function actualizarMapaLocalidades() {
             // Actualizar marcadores de localidades en el mapa.
             // El mapa activo es window.mapViewerInstance.map (creado por MapViewer);
@@ -3364,7 +3394,7 @@
 
         function actualizarSelectLocalidadesEgreso() {
             const select = document.getElementById('egresoLocalidad');
-            const opciones = DB.localidades.map(l => `<option value="${l.nombre}">${l.nombre}</option>`).join('');
+            const opciones = DB.localidades.map(l => `<option value="${l.nombre}" data-lat="${l.lat}" data-lon="${l.lon}">${l.nombre}</option>`).join('');
             select.innerHTML = '<option value="">-- Seleccionar --</option>' + opciones;
         }
 
@@ -4025,7 +4055,7 @@
 
         function actualizarSelectLocalidades() {
             const select = document.getElementById('benLocalidad');
-            const opciones = DB.localidades.map(l => `<option value="${l.nombre}">${l.nombre}</option>`).join('');
+            const opciones = DB.localidades.map(l => `<option value="${l.nombre}" data-lat="${l.lat}" data-lon="${l.lon}">${l.nombre}</option>`).join('');
             select.innerHTML = '<option value="">-- Seleccionar --</option><option value="Sector Urbano Illapel">Sector Urbano Illapel</option>' + opciones;
         }
 
@@ -4686,7 +4716,7 @@
             const select = document.getElementById('actMovilLocalidad');
             select.innerHTML = '<option value="">-- Seleccionar --</option>';
             DB.localidades.forEach(l => {
-                select.innerHTML += `<option value="${l.nombre}">${l.nombre}</option>`;
+                select.innerHTML += `<option value="${l.nombre}" data-lat="${l.lat}" data-lon="${l.lon}">${l.nombre}</option>`;
             });
         }
 
@@ -5013,7 +5043,7 @@
 
         function actualizarSelectLocalidadesActividad() {
             const select = document.getElementById('actLocalidad');
-            const opciones = DB.localidades.map(l => `<option value="${l.nombre}">${l.nombre}</option>`).join('');
+            const opciones = DB.localidades.map(l => `<option value="${l.nombre}" data-lat="${l.lat}" data-lon="${l.lon}">${l.nombre}</option>`).join('');
             select.innerHTML = '<option value="">-- Seleccionar --</option>' + opciones;
         }
 
