@@ -4733,9 +4733,14 @@
 
             // Renderizar en el mapa si está disponible
             if (window.mapViewerInstance) {
-                // Re-aplicar el filtro de fecha actual en lugar de mostrar todas las actividades
                 const fechaInput = document.getElementById('filtroFechaMoviles');
-                if (fechaInput && fechaInput.value) {
+                if (fechaInput && fechaInput.value && fechaInput.value !== actividad.fecha) {
+                    // El filtro de fecha del mapa está en otro día distinto al de la
+                    // actividad recién guardada: lo actualizamos a la fecha de la
+                    // actividad para que la marca no "desaparezca" del mapa.
+                    fechaInput.value = actividad.fecha;
+                    filtrarActividadesMovilesPorFecha(actividad.fecha);
+                } else if (fechaInput && fechaInput.value) {
                     filtrarActividadesMovilesPorFecha(fechaInput.value);
                 } else {
                     window.mapViewerInstance.renderActividadesMovil(DB.actividadesMovil);
@@ -5052,9 +5057,14 @@
             actualizarAgendaCalendario();
             if (window.mapViewerInstance) {
                 window.mapViewerInstance.renderEquipos(DB.equipos);
-                // Re-aplicar el filtro de fecha actual en lugar de mostrar todas las actividades
                 const fechaInput = document.getElementById('filtroFechaEquipos');
-                if (fechaInput && fechaInput.value) {
+                if (fechaInput && fechaInput.value && fechaInput.value !== actividad.fecha) {
+                    // El filtro de fecha del mapa está en otro día distinto al de la
+                    // actividad recién guardada: lo actualizamos a la fecha de la
+                    // actividad para que la marca no "desaparezca" del mapa.
+                    fechaInput.value = actividad.fecha;
+                    filtrarActividadesEquiposPorFecha(actividad.fecha);
+                } else if (fechaInput && fechaInput.value) {
                     filtrarActividadesEquiposPorFecha(fechaInput.value);
                 } else {
                     window.mapViewerInstance.renderActividadesEquipo(DB.actividadesEquipo);
