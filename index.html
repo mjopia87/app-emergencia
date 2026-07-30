@@ -996,25 +996,62 @@
                     <div class="stats-grid">
                         <div class="stat-box">
                             <div class="stat-number" id="statEmerg">0</div>
-                            <div class="stat-label">Emergencias</div>
+                            <div class="stat-label">Requerimientos</div>
                         </div>
                         <div class="stat-box" style="background:linear-gradient(135deg,#27ae60,#1e8449);">
+                            <div class="stat-number" id="statAtendidos">0</div>
+                            <div class="stat-label">🎫 Atendidos</div>
+                        </div>
+                        <div class="stat-box" style="background:linear-gradient(135deg,#e67e22,#ca6f1e);">
+                            <div class="stat-number" id="statPendientes">0</div>
+                            <div class="stat-label">⏳ Pendientes</div>
+                        </div>
+                        <div class="stat-box" style="background:linear-gradient(135deg,#3498db,#2980b9);">
                             <div class="stat-number" id="statBen">0</div>
                             <div class="stat-label">Beneficiarios</div>
                         </div>
-                        <div class="stat-box" style="background:linear-gradient(135deg,#f39c12,#d68910);">
+                        <div class="stat-box" style="background:linear-gradient(135deg,#8e44ad,#6c3483);">
                             <div class="stat-number" id="statAcopio">0</div>
                             <div class="stat-label">Items Acopio</div>
                         </div>
-                        <div class="stat-box" style="background:linear-gradient(135deg,#3498db,#2980b9);">
+                        <div class="stat-box" style="background:linear-gradient(135deg,#16a085,#117864);">
                             <div class="stat-number" id="statEquipos">0</div>
                             <div class="stat-label">Equipos</div>
                         </div>
                     </div>
 
                     <div class="card">
-                        <div class="card-title">Urgencias Registradas</div>
-                        <div id="urgenciaReport"></div>
+                        <div class="card-title">📊 Requerimientos por Localidad — Atendidos vs Pendientes</div>
+                        <div style="position:relative;height:280px;">
+                            <canvas id="reporteRequerimientosChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-title">🔴 Urgencias Registradas (Requerimientos + Beneficiarios)</div>
+                        <div style="position:relative;height:220px;max-width:420px;margin:0 auto;">
+                            <canvas id="reporteUrgenciaChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-title">📦 Centro de Acopio — Existencias y Egresos</div>
+                        <div style="display:grid;grid-template-columns:1.3fr 1fr;gap:20px;align-items:start;">
+                            <div style="position:relative;height:220px;">
+                                <canvas id="reporteAcopioChart"></canvas>
+                            </div>
+                            <div style="position:relative;height:220px;">
+                                <canvas id="reporteEgresoLocalidadChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-title">🚗 Equipos y Móviles Desplegados por Día</div>
+                        <div style="position:relative;height:260px;">
+                            <canvas id="reporteDespliegueChart"></canvas>
+                        </div>
+                        <div id="reporteDespliegueLocalidades" style="font-size:13px;margin-top:12px;"></div>
                     </div>
                 </div>
 
@@ -2290,6 +2327,11 @@
             if (view === 'papelera') {
                 refreshPapelera();
             }
+            if (view === 'reportes') {
+                // Redibujar los gráficos una vez el contenedor ya es visible
+                // (Chart.js calcula mal el tamaño si el canvas estaba oculto)
+                setTimeout(() => refreshReportes(), 50);
+            }
         }
 
         // ===== MODALES =====
@@ -2490,6 +2532,7 @@
                     urgencia: document.getElementById('emgUrgencia').value,
                     direccion: document.getElementById('emgDireccion').value || 'Sin dirección',
                     ubicacion: document.getElementById('emgDireccion').value || 'Sin dirección',
+                    localidad: document.getElementById('emgLocalidad')?.value || '',
                     descripcion: document.getElementById('emgDesc').value,
                     fecha: window.editandoEmergenciaId ? (DB.emergencias.find(em => em.id === window.editandoEmergenciaId)?.fecha || new Date().toLocaleString()) : new Date().toLocaleString(),
                     timestamp: new Date().toISOString(),
@@ -2594,6 +2637,9 @@
                 document.getElementById('emgDesc').value = emergencia.descripcion || '';
                 document.getElementById('emgLat').value = emergencia.lat;
                 document.getElementById('emgLon').value = emergencia.lon;
+                if (document.getElementById('emgLocalidad')) {
+                    document.getElementById('emgLocalidad').value = emergencia.localidad || '';
+                }
                 document.getElementById('mapClickStatus').innerHTML = `✅ [${emergencia.lat.toFixed(5)}, ${emergencia.lon.toFixed(5)}]`;
                 document.getElementById('mapClickStatus').style.color = '#27ae60';
 
@@ -5196,24 +5242,195 @@
         }
 
         function refreshReportes() {
+            if (typeof Chart === 'undefined') {
+                console.warn('⚠️ Chart.js no está disponible todavía');
+                return;
+            }
+
+            // ===== Estadísticas generales =====
+            const atendidos = DB.emergencias.filter(e => e.estadoAtencion === 'atendido').length;
+            const pendientes = DB.emergencias.length - atendidos;
+
             document.getElementById('statEmerg').textContent = DB.emergencias.length;
+            document.getElementById('statAtendidos').textContent = atendidos;
+            document.getElementById('statPendientes').textContent = pendientes;
             document.getElementById('statBen').textContent = DB.beneficiarios.length;
             document.getElementById('statAcopio').textContent = DB.acopio.length;
             document.getElementById('statEquipos').textContent = DB.equipos.length;
 
-            const urgencias = {critico: 0, alto: 0, medio: 0, bajo: 0};
+            // ===== Gráfico 1: Requerimientos por localidad (atendidos vs pendientes) =====
+            const porLocalidad = {};
+            DB.emergencias.forEach(e => {
+                const loc = e.localidad && e.localidad.trim() ? e.localidad : 'Sin localidad';
+                if (!porLocalidad[loc]) porLocalidad[loc] = { atendidos: 0, pendientes: 0 };
+                if (e.estadoAtencion === 'atendido') porLocalidad[loc].atendidos++;
+                else porLocalidad[loc].pendientes++;
+            });
+            const localidadesReq = Object.keys(porLocalidad).sort((a, b) => {
+                const totalA = porLocalidad[a].atendidos + porLocalidad[a].pendientes;
+                const totalB = porLocalidad[b].atendidos + porLocalidad[b].pendientes;
+                return totalB - totalA;
+            }).slice(0, 12);
+
+            if (window.reporteRequerimientosChart) window.reporteRequerimientosChart.destroy();
+            const ctxReq = document.getElementById('reporteRequerimientosChart');
+            if (ctxReq) {
+                window.reporteRequerimientosChart = new Chart(ctxReq, {
+                    type: 'bar',
+                    data: {
+                        labels: localidadesReq,
+                        datasets: [
+                            { label: '🎫 Atendidos', data: localidadesReq.map(l => porLocalidad[l].atendidos), backgroundColor: '#27ae60' },
+                            { label: '⏳ Pendientes', data: localidadesReq.map(l => porLocalidad[l].pendientes), backgroundColor: '#e67e22' }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: { y: { beginAtZero: true, ticks: { precision: 0 } }, x: { stacked: false } },
+                        plugins: { legend: { position: 'top' } }
+                    }
+                });
+            }
+
+            // ===== Gráfico 2: Urgencias (Requerimientos + Beneficiarios) =====
+            const urgencias = { critico: 0, alto: 0, medio: 0, bajo: 0 };
             [...DB.emergencias, ...DB.beneficiarios].forEach(item => {
-                if (item.urgencia) urgencias[item.urgencia]++;
+                if (item.urgencia && urgencias.hasOwnProperty(item.urgencia)) urgencias[item.urgencia]++;
             });
 
-            document.getElementById('urgenciaReport').innerHTML = `
-                <table>
-                    <tr><td>🔴 Crítico</td><td>${urgencias.critico}</td></tr>
-                    <tr><td>🟠 Alto</td><td>${urgencias.alto}</td></tr>
-                    <tr><td>🟡 Medio</td><td>${urgencias.medio}</td></tr>
-                    <tr><td>🟢 Bajo</td><td>${urgencias.bajo}</td></tr>
-                </table>
-            `;
+            if (window.reporteUrgenciaChart) window.reporteUrgenciaChart.destroy();
+            const ctxUrg = document.getElementById('reporteUrgenciaChart');
+            if (ctxUrg) {
+                window.reporteUrgenciaChart = new Chart(ctxUrg, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['🔴 Crítico', '🟠 Alto', '🟡 Medio', '🟢 Bajo'],
+                        datasets: [{
+                            data: [urgencias.critico, urgencias.alto, urgencias.medio, urgencias.bajo],
+                            backgroundColor: ['#e74c3c', '#f39c12', '#f1c40f', '#27ae60']
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { position: 'bottom' } }
+                    }
+                });
+            }
+
+            // ===== Gráfico 3: Existencias/Egresos de Acopio (compacto) =====
+            const ingresosPorItem = {};
+            DB.acopio.forEach(item => {
+                ingresosPorItem[item.nombre] = (ingresosPorItem[item.nombre] || 0) + (item.cantidadIngresada || item.stock || 0);
+            });
+            const egresosPorItem = {};
+            DB.egresos.forEach(egreso => {
+                egresosPorItem[egreso.bien] = (egresosPorItem[egreso.bien] || 0) + (egreso.cantidad || 0);
+            });
+            const itemsAcopio = [...new Set([...Object.keys(ingresosPorItem), ...Object.keys(egresosPorItem)])]
+                .sort((a, b) => (ingresosPorItem[b] || 0) - (ingresosPorItem[a] || 0))
+                .slice(0, 8);
+
+            if (window.reporteAcopioChart) window.reporteAcopioChart.destroy();
+            const ctxAcopio = document.getElementById('reporteAcopioChart');
+            if (ctxAcopio) {
+                window.reporteAcopioChart = new Chart(ctxAcopio, {
+                    type: 'bar',
+                    data: {
+                        labels: itemsAcopio,
+                        datasets: [
+                            { label: 'Existencias', data: itemsAcopio.map(i => ingresosPorItem[i] || 0), backgroundColor: '#3498db' },
+                            { label: 'Egresos', data: itemsAcopio.map(i => egresosPorItem[i] || 0), backgroundColor: '#e74c3c' }
+                        ]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: { x: { beginAtZero: true, ticks: { precision: 0 } } },
+                        plugins: { legend: { position: 'top' } }
+                    }
+                });
+            }
+
+            // ===== Gráfico 4: Egresos por destino/localidad =====
+            const egresoPorDestino = {};
+            DB.egresos.forEach(eg => {
+                const destino = eg.tipoDestino === 'rural' ? (eg.destino || 'Sin localidad') : 'Sector Urbano (domicilio)';
+                egresoPorDestino[destino] = (egresoPorDestino[destino] || 0) + (eg.cantidad || 0);
+            });
+            const destinos = Object.keys(egresoPorDestino).sort((a, b) => egresoPorDestino[b] - egresoPorDestino[a]).slice(0, 8);
+
+            if (window.reporteEgresoLocalidadChart) window.reporteEgresoLocalidadChart.destroy();
+            const ctxEgresoLoc = document.getElementById('reporteEgresoLocalidadChart');
+            if (ctxEgresoLoc) {
+                window.reporteEgresoLocalidadChart = new Chart(ctxEgresoLoc, {
+                    type: 'doughnut',
+                    data: {
+                        labels: destinos.length ? destinos : ['Sin egresos'],
+                        datasets: [{
+                            data: destinos.length ? destinos.map(d => egresoPorDestino[d]) : [1],
+                            backgroundColor: ['#8e44ad', '#2980b9', '#16a085', '#d35400', '#c0392b', '#27ae60', '#f39c12', '#7f8c8d']
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } } }
+                    }
+                });
+            }
+
+            // ===== Gráfico 5: Equipos y Móviles desplegados por día =====
+            const porDia = {};
+            DB.actividadesEquipo.forEach(a => {
+                const dia = a.fecha || 'Sin fecha';
+                if (!porDia[dia]) porDia[dia] = { equipos: 0, moviles: 0 };
+                porDia[dia].equipos++;
+            });
+            DB.actividadesMovil.forEach(a => {
+                const dia = a.fecha || 'Sin fecha';
+                if (!porDia[dia]) porDia[dia] = { equipos: 0, moviles: 0 };
+                porDia[dia].moviles++;
+            });
+            const dias = Object.keys(porDia).sort().slice(-14);
+
+            if (window.reporteDespliegueChart) window.reporteDespliegueChart.destroy();
+            const ctxDespliegue = document.getElementById('reporteDespliegueChart');
+            if (ctxDespliegue) {
+                window.reporteDespliegueChart = new Chart(ctxDespliegue, {
+                    type: 'bar',
+                    data: {
+                        labels: dias,
+                        datasets: [
+                            { label: '🚗 Equipos', data: dias.map(d => porDia[d].equipos), backgroundColor: '#16a085' },
+                            { label: '🚙 Móviles', data: dias.map(d => porDia[d].moviles), backgroundColor: '#8e44ad' }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true, ticks: { precision: 0 } } },
+                        plugins: { legend: { position: 'top' } }
+                    }
+                });
+            }
+
+            // Resumen de localidades donde se desplegaron equipos/móviles
+            const porLocalidadDespliegue = {};
+            [...DB.actividadesEquipo, ...DB.actividadesMovil].forEach(a => {
+                if (a.tipoUbicacion === 'localidad' && a.ubicacion) {
+                    porLocalidadDespliegue[a.ubicacion] = (porLocalidadDespliegue[a.ubicacion] || 0) + 1;
+                }
+            });
+            const topLocalidadesDespliegue = Object.keys(porLocalidadDespliegue).sort((a, b) => porLocalidadDespliegue[b] - porLocalidadDespliegue[a]).slice(0, 8);
+            const resumenEl = document.getElementById('reporteDespliegueLocalidades');
+            if (resumenEl) {
+                resumenEl.innerHTML = topLocalidadesDespliegue.length
+                    ? '<strong>📍 Localidades con más despliegues:</strong><br>' + topLocalidadesDespliegue.map(l => `${l}: ${porLocalidadDespliegue[l]}`).join(' &nbsp;|&nbsp; ')
+                    : '<em style="color:#7f8c8d;">Sin despliegues registrados por localidad</em>';
+            }
         }
 
         // ===== IMPORTAR VEHÍCULOS =====
