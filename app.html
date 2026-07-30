@@ -1030,7 +1030,7 @@
                 <div id="usuarios" class="admin-only">
                     <div class="card">
                         <div class="card-title">👤 Registro de Usuarios</div>
-                        <button class="btn btn-primary" onclick="openModal('nuevoUsuarioModal')">+ Nuevo Usuario</button>
+                        <button class="btn btn-primary" onclick="abrirModalUsuario()">+ Nuevo Usuario</button>
                         <table id="usuariosTable">
                             <thead>
                                 <tr><th>Nombre</th><th>RUT</th><th>Usuario</th><th>Email</th><th>Fecha Creación</th><th>Acciones</th></tr>
@@ -1429,19 +1429,20 @@
         </div>
     </div>
 
-    <!-- NUEVO USUARIO MODAL -->
+    <!-- NUEVO/EDITAR USUARIO MODAL -->
     <div class="modal" id="nuevoUsuarioModal">
         <div class="modal-content">
-            <div class="modal-header"><span>Nuevo Usuario</span><button class="modal-close" onclick="closeModal('nuevoUsuarioModal')">×</button></div>
+            <div class="modal-header"><span id="usuarioModalTitle">Nuevo Usuario</span><button class="modal-close" onclick="closeModal('nuevoUsuarioModal')">×</button></div>
             <form onsubmit="saveNewUser(event)">
+                <input type="hidden" id="usuarioEditId" value="">
                 <div class="form-group"><label>Nombre de Funcionario *</label><input type="text" id="usuarioNombre" placeholder="ej: Juan Pérez" required></div>
                 <div class="form-group"><label>RUT *</label><input type="text" id="usuarioRut" placeholder="ej: 12.345.678-9" required></div>
                 <div class="form-group"><label>Nombre de Usuario *</label><input type="text" id="usuarioUsername" placeholder="ej: jpérez" required></div>
-                <div class="form-group"><label>Contraseña *</label><input type="password" id="usuarioPassword" placeholder="Contraseña" required></div>
+                <div class="form-group"><label id="usuarioPasswordLabel">Contraseña *</label><input type="password" id="usuarioPassword" placeholder="Contraseña"></div>
                 <div class="form-group"><label>Correo Electrónico *</label><input type="email" id="usuarioEmail" placeholder="ej: juan@example.com" required></div>
                 <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px;">
                     <button type="button" class="btn btn-secondary" onclick="closeModal('nuevoUsuarioModal')">Cancelar</button>
-                    <button type="submit" class="btn btn-primary">Guardar Usuario</button>
+                    <button type="submit" class="btn btn-primary" id="usuarioModalSubmitBtn">Guardar Usuario</button>
                 </div>
             </form>
         </div>
@@ -5436,53 +5437,150 @@
         }
 
 
-        // Guardar nuevo usuario (solo admin puede crear usuarios)
+        // Abrir modal en modo "Nuevo Usuario" (limpio)
+        function abrirModalUsuario() {
+            document.getElementById('nuevoUsuarioModal').querySelector('form').reset();
+            document.getElementById('usuarioEditId').value = '';
+            document.getElementById('usuarioModalTitle').textContent = 'Nuevo Usuario';
+            document.getElementById('usuarioModalSubmitBtn').textContent = 'Guardar Usuario';
+            document.getElementById('usuarioPasswordLabel').textContent = 'Contraseña *';
+            document.getElementById('usuarioPassword').placeholder = 'Contraseña';
+
+            const usernameField = document.getElementById('usuarioUsername');
+            usernameField.readOnly = false;
+            usernameField.style.background = '';
+
+            openModal('nuevoUsuarioModal');
+        }
+
+        // Abrir modal en modo "Editar Usuario" con los datos precargados
+        function editarUsuario(id) {
+            if (currentUser !== 'admin') {
+                alert('Solo el administrador puede editar usuarios');
+                return;
+            }
+
+            const users = JSON.parse(localStorage.getItem(USERS_DB_KEY) || '[]');
+            const user = users.find(u => u.id === id);
+            if (!user) return;
+
+            document.getElementById('usuarioEditId').value = user.id;
+            document.getElementById('usuarioNombre').value = user.nombre;
+            document.getElementById('usuarioRut').value = user.rut;
+            document.getElementById('usuarioUsername').value = user.username;
+            document.getElementById('usuarioPassword').value = '';
+            document.getElementById('usuarioEmail').value = user.email;
+
+            document.getElementById('usuarioModalTitle').textContent = 'Editar Usuario';
+            document.getElementById('usuarioModalSubmitBtn').textContent = 'Guardar Cambios';
+            document.getElementById('usuarioPasswordLabel').textContent = 'Nueva Contraseña (dejar en blanco para no cambiar)';
+            document.getElementById('usuarioPassword').placeholder = 'Dejar en blanco para mantener la actual';
+
+            // El nombre de usuario "admin" no puede renombrarse
+            const usernameField = document.getElementById('usuarioUsername');
+            if (user.username === 'admin') {
+                usernameField.readOnly = true;
+                usernameField.style.background = '#f0f0f0';
+            } else {
+                usernameField.readOnly = false;
+                usernameField.style.background = '';
+            }
+
+            openModal('nuevoUsuarioModal');
+        }
+
+        // Guardar usuario nuevo o editado (solo admin)
         function saveNewUser(e) {
             e.preventDefault();
 
             if (currentUser !== 'admin') {
-                alert('Solo el administrador puede registrar nuevos usuarios');
+                alert('Solo el administrador puede registrar o editar usuarios');
                 return;
             }
 
+            const editId = document.getElementById('usuarioEditId').value;
             const nombre = document.getElementById('usuarioNombre').value.trim();
             const rut = document.getElementById('usuarioRut').value.trim();
             const username = document.getElementById('usuarioUsername').value.trim();
             const password = document.getElementById('usuarioPassword').value.trim();
             const email = document.getElementById('usuarioEmail').value.trim();
 
-            if (!nombre || !rut || !username || !password || !email) {
+            if (!nombre || !rut || !username || !email) {
                 alert('Por favor complete todos los campos');
                 return;
             }
 
             const users = JSON.parse(localStorage.getItem(USERS_DB_KEY) || '[]');
 
-            // Verificar que el usuario no exista ni sea el nombre reservado 'admin'
-            if (username === 'admin' || users.find(u => u.username === username)) {
-                alert('El nombre de usuario ya existe o está reservado');
-                return;
+            if (editId) {
+                // ===== EDITAR usuario existente =====
+                const idx = users.findIndex(u => u.id === parseInt(editId));
+                if (idx === -1) {
+                    alert('Usuario no encontrado');
+                    return;
+                }
+
+                const original = users[idx];
+                let finalUsername = original.username;
+
+                // El usuario "admin" no puede renombrarse
+                if (original.username !== 'admin') {
+                    if (username === 'admin') {
+                        alert('El nombre de usuario "admin" está reservado');
+                        return;
+                    }
+                    if (users.find(u => u.username === username && u.id !== original.id)) {
+                        alert('El nombre de usuario ya existe');
+                        return;
+                    }
+                    finalUsername = username;
+                }
+
+                users[idx] = {
+                    ...original,
+                    nombre,
+                    rut,
+                    username: finalUsername,
+                    email,
+                    password: password ? password : original.password
+                };
+
+                localStorage.setItem(USERS_DB_KEY, JSON.stringify(users));
+                logActivity('edición_usuario', `Usuario editado: ${finalUsername}`);
+                alert('Usuario actualizado exitosamente');
+            } else {
+                // ===== CREAR nuevo usuario =====
+                if (!password) {
+                    alert('La contraseña es obligatoria');
+                    return;
+                }
+
+                // Verificar que el usuario no exista ni sea el nombre reservado 'admin'
+                if (username === 'admin' || users.find(u => u.username === username)) {
+                    alert('El nombre de usuario ya existe o está reservado');
+                    return;
+                }
+
+                const newUser = {
+                    id: Date.now(),
+                    nombre,
+                    rut,
+                    username,
+                    password,
+                    email,
+                    isAdmin: false,
+                    fechaCreacion: new Date().toLocaleString('es-CL')
+                };
+
+                users.push(newUser);
+                localStorage.setItem(USERS_DB_KEY, JSON.stringify(users));
+                logActivity('creación_usuario', `Usuario creado: ${username}`);
+                alert('Usuario creado exitosamente');
             }
 
-            const newUser = {
-                id: Date.now(),
-                nombre,
-                rut,
-                username,
-                password,
-                email,
-                isAdmin: false,
-                fechaCreacion: new Date().toLocaleString('es-CL')
-            };
-
-            users.push(newUser);
-            localStorage.setItem(USERS_DB_KEY, JSON.stringify(users));
-
-            logActivity('creación_usuario', `Usuario creado: ${username}`);
-
-            alert('Usuario creado exitosamente');
             closeModal('nuevoUsuarioModal');
             document.getElementById('nuevoUsuarioModal').querySelector('form').reset();
+            document.getElementById('usuarioEditId').value = '';
 
             refreshUsuarios();
         }
@@ -5505,7 +5603,8 @@
                     <td>${user.email}</td>
                     <td>${user.fechaCreacion}</td>
                     <td style="text-align:center;">
-                        ${user.username === 'admin' ? '<span style="color:#bdc3c7;">-</span>' : `<button class="btn btn-sm btn-danger" onclick="deleteUser(${user.id})" style="padding:4px 8px;font-size:12px;">🗑️</button>`}
+                        <button class="btn btn-sm btn-secondary" onclick="editarUsuario(${user.id})" style="padding:4px 8px;font-size:12px;">✏️</button>
+                        ${user.username === 'admin' ? '' : `<button class="btn btn-sm btn-danger" onclick="deleteUser(${user.id})" style="padding:4px 8px;font-size:12px;">🗑️</button>`}
                     </td>
                 </tr>
             `).join('');
