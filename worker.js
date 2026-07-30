@@ -2,7 +2,13 @@
 // Sirve los archivos estáticos de la app y expone una API mínima
 // respaldada por Cloudflare KV para compartir los datos entre dispositivos.
 
-const ALLOWED_KEYS = ['illapel_db', 'illapel_users_db', 'illapel_activity_log'];
+// Cualquier clave que empiece con "illapel_" está permitida. Se usa un
+// prefijo en vez de una lista fija porque la app ahora sincroniza cada
+// sección (emergencias, acopio, egresos, etc.) en su propia clave para que
+// dos usuarios trabajando en secciones distintas no se pisen entre sí.
+function esClavePermitida(key) {
+  return typeof key === 'string' && key.startsWith('illapel_');
+}
 
 export default {
   async fetch(request, env, ctx) {
@@ -20,7 +26,7 @@ export default {
 async function handleKvRequest(request, env, url) {
   const key = decodeURIComponent(url.pathname.replace('/api/kv/', ''));
 
-  if (!ALLOWED_KEYS.includes(key)) {
+  if (!esClavePermitida(key)) {
     return jsonResponse({ error: 'Clave no permitida' }, 400);
   }
 

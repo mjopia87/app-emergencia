@@ -1904,52 +1904,88 @@
         };
         const DB_KEY = 'illapel_db';
 
-        async function loadDB() {
-            // Intentar traer la versión más reciente compartida desde el servidor
-            const remote = await apiGetKey(DB_KEY);
-            if (remote) {
-                Object.assign(DB, remote);
-                localStorage.setItem(DB_KEY, JSON.stringify(DB));
-                return;
-            }
+        // Cada sección se sincroniza en su propia clave KV. Así, dos personas
+        // trabajando en módulos distintos (por ejemplo Acopio y Beneficiarios)
+        // nunca compiten por la misma clave, y guardar en la misma sección se
+        // hace con "traer del servidor -> aplicar el cambio -> guardar" en vez
+        // de sobrescribir con el estado local, que puede estar desactualizado
+        // si otro usuario agregó algo mientras esta sesión no sincronizaba.
+        const SECTION_KEYS = {
+            emergencias: 'illapel_emergencias',
+            acopio: 'illapel_acopio',
+            egresos: 'illapel_egresos',
+            beneficiarios: 'illapel_beneficiarios',
+            equipos: 'illapel_equipos',
+            actividadesEquipo: 'illapel_actividades_equipo',
+            moviles: 'illapel_moviles',
+            actividadesMovil: 'illapel_actividades_movil',
+            chat: 'illapel_chat',
+            reportes: 'illapel_reportes',
+            localidades: 'illapel_localidades',
+            papelera: 'illapel_papelera'
+        };
 
-            // Sin datos remotos: usar copia local y subirla al servidor
-            const data = localStorage.getItem(DB_KEY);
-            if (data) {
-                Object.assign(DB, JSON.parse(data));
-                apiPutKey(DB_KEY, DB);
-                return;
-            }
-
-            // Si no hay datos consolidados, intentar cargar de las claves antiguas
-            console.log('📂 Migrando datos de claves antiguas...');
-            const emergenciasOld = localStorage.getItem('emergencias');
-            if (emergenciasOld) DB.emergencias = JSON.parse(emergenciasOld);
-
-            const beneficiariosOld = localStorage.getItem('beneficiarios');
-            if (beneficiariosOld) DB.beneficiarios = JSON.parse(beneficiariosOld);
-
-            const acopioOld = localStorage.getItem('acopio');
-            if (acopioOld) DB.acopio = JSON.parse(acopioOld);
-
-            const egresosOld = localStorage.getItem('egresos');
-            if (egresosOld) DB.egresos = JSON.parse(egresosOld);
-
-            const equiposOld = localStorage.getItem('equipos');
-            if (equiposOld) DB.equipos = JSON.parse(equiposOld);
-
-            const localidadesOld = localStorage.getItem('localidades');
-            if (localidadesOld) DB.localidades = JSON.parse(localidadesOld);
-
-            if (DB.emergencias.length > 0 || DB.beneficiarios.length > 0) {
-                console.log('✅ Datos migrados correctamente');
-                saveDB(); // Guardar en la nueva estructura
-            }
+        // Trae la versión más reciente de una sección desde el servidor, le
+        // aplica la mutación indicada (agregar, editar o quitar un registro) y
+        // guarda el resultado tanto local como remotamente. Usar SIEMPRE esta
+        // función (en vez de mutar DB[seccion] directamente) para que un alta
+        // hecha por otro usuario mientras esta sesión estaba desactualizada no
+        // se pierda al guardar.
+        async function guardarSeccion(seccion, mutFn) {
+            const key = SECTION_KEYS[seccion];
+            const remoto = await apiGetKey(key);
+            const base = remoto || DB[seccion] || [];
+            const resultado = mutFn([...base]) || base;
+            DB[seccion] = resultado;
+            localStorage.setItem(key, JSON.stringify(resultado));
+            localStorage.setItem(DB_KEY, JSON.stringify(DB));
+            await apiPutKey(key, resultado);
+            return resultado;
         }
 
-        function saveDB() {
+        async function loadDB() {
+            const secciones = Object.keys(SECTION_KEYS);
+
+            // Intentar traer cada sección desde su propia clave (arquitectura actual)
+            const resultados = await Promise.all(secciones.map(s => apiGetKey(SECTION_KEYS[s])));
+            let faltanSecciones = false;
+            secciones.forEach((seccion, i) => {
+                if (resultados[i] !== null && resultados[i] !== undefined) {
+                    DB[seccion] = resultados[i];
+                } else {
+                    faltanSecciones = true;
+                }
+            });
+
+            if (faltanSecciones) {
+                // Alguna sección todavía no existe con clave propia: migrar desde
+                // el blob legado (illapel_db) o desde localStorage como respaldo.
+                console.log('📂 Migrando a arquitectura de claves por sección...');
+                const legado = await apiGetKey(DB_KEY);
+                let base = legado;
+                if (!base) {
+                    const local = localStorage.getItem(DB_KEY);
+                    base = local ? JSON.parse(local) : null;
+                }
+                if (base) {
+                    secciones.forEach(seccion => {
+                        if ((!DB[seccion] || DB[seccion].length === 0) && base[seccion] && base[seccion].length > 0) {
+                            DB[seccion] = base[seccion];
+                        }
+                    });
+                }
+                await Promise.all(secciones.map(seccion => apiPutKey(SECTION_KEYS[seccion], DB[seccion] || [])));
+                console.log('✅ Migración a claves por sección completada');
+            }
+
             localStorage.setItem(DB_KEY, JSON.stringify(DB));
-            apiPutKey(DB_KEY, DB);
+        }
+
+        // Mantenida por compatibilidad: algunas rutinas de inicialización todavía
+        // llaman a saveDB() como respaldo general. Guarda cada sección con merge.
+        async function saveDB() {
+            localStorage.setItem(DB_KEY, JSON.stringify(DB));
+            await Promise.all(Object.keys(SECTION_KEYS).map(seccion => guardarSeccion(seccion, () => DB[seccion])));
         }
 
         // ===== MAPA =====
@@ -2603,15 +2639,24 @@
             select.innerHTML = '<option value="">-- Seleccionar localidad --</option>' + opciones;
         }
 
-        function saveEmergencia(e) {
+        async function saveEmergencia(e) {
             e.preventDefault();
 
             try {
                 let lat = parseFloat(document.getElementById('emgLat').value) || ILLAPEL_CENTER[0];
                 let lon = parseFloat(document.getElementById('emgLon').value) || ILLAPEL_CENTER[1];
+                const editandoId = window.editandoEmergenciaId;
+                const isEditing = !!editandoId;
+
+                // Traer la versión más reciente antes de armar el objeto, para no
+                // perder cambios de otros usuarios ni pisar el estado de atención
+                // o la fecha original con datos locales desactualizados.
+                const remotas = await apiGetKey(SECTION_KEYS.emergencias);
+                const base = remotas || DB.emergencias || [];
+                const existente = isEditing ? base.find(em => em.id === editandoId) : null;
 
                 const emergencia = {
-                    id: window.editandoEmergenciaId || Date.now(),
+                    id: editandoId || Date.now(),
                     nombre: document.getElementById('emgContacto').value,
                     contacto: document.getElementById('emgContacto').value,
                     telefono: document.getElementById('emgTel').value,
@@ -2621,29 +2666,26 @@
                     ubicacion: document.getElementById('emgDireccion').value || '',
                     localidad: document.getElementById('emgLocalidad')?.value || '',
                     descripcion: document.getElementById('emgDesc').value,
-                    fecha: window.editandoEmergenciaId ? (DB.emergencias.find(em => em.id === window.editandoEmergenciaId)?.fecha || new Date().toLocaleString()) : new Date().toLocaleString(),
+                    fecha: existente?.fecha || new Date().toLocaleString(),
                     timestamp: new Date().toISOString(),
                     usuario: currentUser,
                     lat: lat,
                     lon: lon,
                     // Preservar el estado de atención si se está editando; nuevo requerimiento nace "pendiente"
-                    estadoAtencion: window.editandoEmergenciaId ? (DB.emergencias.find(em => em.id === window.editandoEmergenciaId)?.estadoAtencion || 'pendiente') : 'pendiente'
+                    estadoAtencion: existente?.estadoAtencion || 'pendiente'
                 };
 
-                const isEditing = !!window.editandoEmergenciaId;
-                if (window.editandoEmergenciaId) {
-                    // Editar emergencia existente
-                    const idx = DB.emergencias.findIndex(em => em.id === window.editandoEmergenciaId);
-                    if (idx >= 0) {
-                        DB.emergencias[idx] = emergencia;
+                await guardarSeccion('emergencias', arr => {
+                    if (isEditing) {
+                        const idx = arr.findIndex(em => em.id === editandoId);
+                        if (idx >= 0) arr[idx] = emergencia; else arr.push(emergencia);
+                    } else {
+                        arr.push(emergencia);
                     }
-                    window.editandoEmergenciaId = null;
-                } else {
-                    // Crear nueva emergencia
-                    DB.emergencias.push(emergencia);
-                }
+                    return arr;
+                });
+                window.editandoEmergenciaId = null;
 
-                saveDB();
                 logActivity(isEditing ? 'modificación' : 'registro', `Requerimiento: ${emergencia.urgencia}`);
                 closeModal('emergenciaModal');
                 document.getElementById('emergenciaModal').querySelector('form').reset();
@@ -2695,13 +2737,16 @@
             }).join('');
         }
 
-        function marcarAtendido(id) {
+        async function marcarAtendido(id) {
             const emergencia = DB.emergencias.find(e => e.id === id);
             if (!emergencia) return;
             if (!confirm('¿Marcar este requerimiento como atendido?')) return;
 
-            emergencia.estadoAtencion = 'atendido';
-            saveDB();
+            await guardarSeccion('emergencias', arr => {
+                const item = arr.find(e => e.id === id);
+                if (item) item.estadoAtencion = 'atendido';
+                return arr;
+            });
             logActivity('actualización', `Requerimiento marcado como atendido: ${emergencia.contacto}`);
             refreshEmergencias();
             refreshReportes();
@@ -2738,15 +2783,14 @@
             }, 10);
         }
 
-        function deleteEmergencia(id) {
+        async function deleteEmergencia(id) {
             if (!confirm('¿Eliminar?')) return;
             const registro = DB.emergencias.find(e => e.id === id);
-            DB.emergencias = DB.emergencias.filter(e => e.id !== id);
+            await guardarSeccion('emergencias', arr => arr.filter(e => e.id !== id));
             if (registro) {
-                moverAPapelera('Requerimiento de Ayuda', 'emergencias', registro);
+                await moverAPapelera('Requerimiento de Ayuda', 'emergencias', registro);
                 logActivity('eliminación', `Requerimiento: ${registro.contacto || registro.urgencia || id}`);
             }
-            saveDB();
             refreshEmergencias();
             updateMapMarkers();
         }
@@ -2916,7 +2960,7 @@
             }
         }
 
-        function saveLocalidad(e) {
+        async function saveLocalidad(e) {
             e.preventDefault();
 
             const localidad = {
@@ -2928,8 +2972,7 @@
                 fecha: new Date().toLocaleString()
             };
 
-            DB.localidades.push(localidad);
-            saveDB();
+            await guardarSeccion('localidades', arr => { arr.push(localidad); return arr; });
             closeModal('nuevaLocalidadModal');
             refreshLocalidades();
             actualizarMapaLocalidades();
@@ -2955,14 +2998,17 @@
                 `).join('');
             }
 
-            // Actualizar dropdown de localidades en el modal de emergencias
+            // Actualizar dropdown de localidades en el modal de emergencias.
+            // Se usa l.nombre como value (no l.id) para ser consistente con
+            // actualizarSelectLocalidadesEmergencia() y con lo que saveEmergencia
+            // guarda en el campo "localidad" de cada requerimiento.
             const select = document.getElementById('emgLocalidad');
             if (select) {
                 const currentValue = select.value;
                 select.innerHTML = '<option value="">-- Seleccionar localidad --</option>';
                 DB.localidades.forEach(l => {
                     const option = document.createElement('option');
-                    option.value = l.id;
+                    option.value = l.nombre;
                     option.textContent = `${l.nombre} (${l.tipo})`;
                     option.dataset.lat = l.lat;
                     option.dataset.lon = l.lon;
@@ -2972,15 +3018,14 @@
             }
         }
 
-        function deleteLocalidad(id) {
+        async function deleteLocalidad(id) {
             if (!confirm('¿Eliminar localidad?')) return;
             const registro = DB.localidades.find(l => l.id === id);
-            DB.localidades = DB.localidades.filter(l => l.id !== id);
+            await guardarSeccion('localidades', arr => arr.filter(l => l.id !== id));
             if (registro) {
-                moverAPapelera('Localidad', 'localidades', registro);
+                await moverAPapelera('Localidad', 'localidades', registro);
                 logActivity('eliminación', `Localidad: ${registro.nombre || id}`);
             }
-            saveDB();
             refreshLocalidades();
             actualizarMapaLocalidades();
         }
@@ -3095,7 +3140,7 @@
             openModal('acopioModal');
         }
 
-        function saveAcopio(e) {
+        async function saveAcopio(e) {
             e.preventDefault();
 
             const fechaIngreso = document.getElementById('acopioFecha').value;
@@ -3110,23 +3155,20 @@
                 fecha: formatearFechaCorta(fechaIngreso)
             };
 
-            const isEditing = !!window.editandoAcopioId;
-            if (window.editandoAcopioId) {
-                // Editar acopio existente
-                const idx = DB.acopio.findIndex(a => a.id === window.editandoAcopioId);
-                if (idx >= 0) {
-                    DB.acopio[idx] = { id: window.editandoAcopioId, ...acopioData };
-                }
-                window.editandoAcopioId = null;
-            } else {
-                // Crear nuevo acopio
-                DB.acopio.push({
-                    id: Date.now(),
-                    ...acopioData
-                });
-            }
+            const editId = window.editandoAcopioId;
+            const isEditing = !!editId;
+            window.editandoAcopioId = null;
 
-            saveDB();
+            await guardarSeccion('acopio', arr => {
+                if (isEditing) {
+                    const idx = arr.findIndex(a => a.id === editId);
+                    if (idx >= 0) arr[idx] = { id: editId, ...acopioData }; else arr.push({ id: editId, ...acopioData });
+                } else {
+                    arr.push({ id: Date.now(), ...acopioData });
+                }
+                return arr;
+            });
+
             logActivity(isEditing ? 'modificación' : 'carga', `Acopio: ${acopioData.nombre}`);
             closeModal('acopioModal');
             document.getElementById('acopioModal').querySelector('form').reset();
@@ -3172,15 +3214,14 @@
             openModal('acopioModal');
         }
 
-        function deleteAcopio(id) {
+        async function deleteAcopio(id) {
             if (!confirm('¿Eliminar este item de acopio?')) return;
             const registro = DB.acopio.find(a => a.id === id);
-            DB.acopio = DB.acopio.filter(a => a.id !== id);
+            await guardarSeccion('acopio', arr => arr.filter(a => a.id !== id));
             if (registro) {
-                moverAPapelera('Acopio', 'acopio', registro);
+                await moverAPapelera('Acopio', 'acopio', registro);
                 logActivity('eliminación', `Acopio: ${registro.nombre || id}`);
             }
-            saveDB();
             refreshAcopio();
             actualizarDashboardStock();
         }
@@ -3233,7 +3274,7 @@
             if (!file) return;
 
             const reader = new FileReader();
-            reader.onload = function(e) {
+            reader.onload = async function(e) {
                 try {
                     // Leer contenido como texto
                     const csv = e.target.result;
@@ -3263,6 +3304,7 @@
 
                     let contadorCargado = 0;
                     let errores = [];
+                    const nuevosItems = [];
 
                     // Procesar datos (empezar desde línea 1, saltar encabezado)
                     for (let idx = 1; idx < lineas.length; idx++) {
@@ -3304,13 +3346,13 @@
                             fecha: formatearFechaCorta(fechaIngresoPlantilla)
                         };
 
-                        DB.acopio.push(acopio);
+                        nuevosItems.push(acopio);
                         contadorCargado++;
                     }
 
-                    // Guardar datos
+                    // Guardar datos (un solo merge contra el servidor para todo el lote)
                     if (contadorCargado > 0) {
-                        saveDB();
+                        await guardarSeccion('acopio', arr => { arr.push(...nuevosItems); return arr; });
                     }
 
                     // Mostrar resultado
@@ -3508,7 +3550,7 @@
             }
         }
 
-        function guardarEgresoCompleto(fotoData) {
+        async function guardarEgresoCompleto(fotoData) {
             const tipoDestino = document.getElementById('egresoTipoDestino').value;
             let destino = '';
 
@@ -3543,25 +3585,25 @@
                 fecha: formatearFechaCorta(fechaEgreso)
             };
 
-            const isEditing = !!window.editandoEgresoId;
-            if (window.editandoEgresoId) {
-                // Editar egreso existente
-                const egreso = DB.egresos.find(eg => eg.id === window.editandoEgresoId);
-                if (egreso) {
-                    Object.assign(egreso, egresoData);
-                    if (fotoData) egreso.foto = fotoData;
-                }
-                window.editandoEgresoId = null;
-            } else {
-                // Crear nuevo egreso
-                DB.egresos.push({
-                    id: Date.now(),
-                    ...egresoData,
-                    foto: fotoData
-                });
-            }
+            const editId = window.editandoEgresoId;
+            const isEditing = !!editId;
+            window.editandoEgresoId = null;
 
-            saveDB();
+            await guardarSeccion('egresos', arr => {
+                if (isEditing) {
+                    const egreso = arr.find(eg => eg.id === editId);
+                    if (egreso) {
+                        Object.assign(egreso, egresoData);
+                        if (fotoData) egreso.foto = fotoData;
+                    } else {
+                        arr.push({ id: editId, ...egresoData, foto: fotoData });
+                    }
+                } else {
+                    arr.push({ id: Date.now(), ...egresoData, foto: fotoData });
+                }
+                return arr;
+            });
+
             logActivity(isEditing ? 'modificación' : 'descarga', `Egreso: ${egresoData.bien}`);
             closeModal('egresoModal');
             document.getElementById('egresoModal').querySelector('form').reset();
@@ -3665,15 +3707,14 @@
             }, 10);
         }
 
-        function deleteEgreso(id) {
+        async function deleteEgreso(id) {
             if (!confirm('¿Eliminar este egreso?')) return;
             const registro = DB.egresos.find(eg => eg.id === id);
-            DB.egresos = DB.egresos.filter(eg => eg.id !== id);
+            await guardarSeccion('egresos', arr => arr.filter(eg => eg.id !== id));
             if (registro) {
-                moverAPapelera('Egreso de Acopio', 'egresos', registro);
+                await moverAPapelera('Egreso de Acopio', 'egresos', registro);
                 logActivity('eliminación', `Egreso: ${registro.bien || id}`);
             }
-            saveDB();
             refreshEgresos();
             actualizarDashboardStock();
         }
@@ -4227,25 +4268,29 @@
             }
         }
 
-        function guardarBeneficiarioCompleto(beneficiary) {
-            const isEditing = !!window.editandoBeneficiarioId;
-            if (window.editandoBeneficiarioId) {
-                // Editar beneficiario existente
-                const idx = DB.beneficiarios.findIndex(b => b.id === window.editandoBeneficiarioId);
-                if (idx >= 0) {
-                    // Preservar acta anterior si no se cargó una nueva
-                    if (!beneficiary.acta && DB.beneficiarios[idx].acta) {
-                        beneficiary.acta = DB.beneficiarios[idx].acta;
-                    }
-                    DB.beneficiarios[idx] = beneficiary;
-                }
-                window.editandoBeneficiarioId = null;
-            } else {
-                // Crear nuevo beneficiario
-                DB.beneficiarios.push(beneficiary);
-            }
+        async function guardarBeneficiarioCompleto(beneficiary) {
+            const editId = window.editandoBeneficiarioId;
+            const isEditing = !!editId;
+            window.editandoBeneficiarioId = null;
 
-            saveDB();
+            await guardarSeccion('beneficiarios', arr => {
+                if (isEditing) {
+                    const idx = arr.findIndex(b => b.id === editId);
+                    if (idx >= 0) {
+                        // Preservar acta anterior si no se cargó una nueva
+                        if (!beneficiary.acta && arr[idx].acta) {
+                            beneficiary.acta = arr[idx].acta;
+                        }
+                        arr[idx] = beneficiary;
+                    } else {
+                        arr.push(beneficiary);
+                    }
+                } else {
+                    arr.push(beneficiary);
+                }
+                return arr;
+            });
+
             logActivity(isEditing ? 'modificación' : 'registro', `Beneficiario: ${beneficiary.nombre}`);
             beneficiarioClickMode = false;
             closeModal('beneficiarioModal');
@@ -4413,15 +4458,14 @@
             }, 10);
         }
 
-        function deleteBeneficiario(id) {
+        async function deleteBeneficiario(id) {
             if (!confirm('¿Eliminar este beneficiario?')) return;
             const registro = DB.beneficiarios.find(b => b.id === id);
-            DB.beneficiarios = DB.beneficiarios.filter(b => b.id !== id);
+            await guardarSeccion('beneficiarios', arr => arr.filter(b => b.id !== id));
             if (registro) {
-                moverAPapelera('Beneficiario', 'beneficiarios', registro);
+                await moverAPapelera('Beneficiario', 'beneficiarios', registro);
                 logActivity('eliminación', `Beneficiario: ${registro.nombre || id}`);
             }
-            saveDB();
             refreshBeneficiarios();
         }
 
@@ -4466,9 +4510,11 @@
             }
         }
 
-        function guardarEquipoCompleto(equipo) {
-            DB.equipos.push(equipo);
-            saveDB();
+        async function guardarEquipoCompleto(equipo) {
+            await guardarSeccion('equipos', arr => {
+                arr.push(equipo);
+                return arr;
+            });
             logActivity('registro', `Equipo de trabajo: ${equipo.encargado}`);
             closeModal('nuevoEquipoModal');
             document.getElementById('nuevoEquipoModal').querySelector('form').reset();
@@ -4517,15 +4563,14 @@
             openModal('nuevoEquipoModal');
         }
 
-        function deleteEquipo(id) {
+        async function deleteEquipo(id) {
             if (!confirm('¿Eliminar este equipo?')) return;
             const registro = DB.equipos.find(e => e.id === id);
-            DB.equipos = DB.equipos.filter(e => e.id !== id);
+            await guardarSeccion('equipos', arr => arr.filter(e => e.id !== id));
             if (registro) {
-                moverAPapelera('Equipo', 'equipos', registro);
+                await moverAPapelera('Equipo', 'equipos', registro);
                 logActivity('eliminación', `Equipo: ${registro.tipo || id}`);
             }
-            saveDB();
             refreshEquipos();
         }
 
@@ -4544,7 +4589,7 @@
             campo.style.display = tipo === 'Maquinaria' ? 'block' : 'none';
         }
 
-        function saveMovil(e) {
+        async function saveMovil(e) {
             e.preventDefault();
 
             const movil = {
@@ -4560,19 +4605,26 @@
                 fechaRegistro: new Date().toLocaleString()
             };
 
-            if (window.editandoMovilId) {
-                const index = DB.moviles.findIndex(m => m.id === window.editandoMovilId);
-                if (index >= 0) {
-                    DB.moviles[index] = movil;
-                    logActivity('modificación', `Móvil actualizado: ${movil.tipo}`);
-                }
-                window.editandoMovilId = null;
-            } else {
-                DB.moviles.push(movil);
-                logActivity('registro', `Móvil registrado: ${movil.tipo}`);
-            }
+            const editId = window.editandoMovilId;
+            const isEditing = !!editId;
+            window.editandoMovilId = null;
 
-            saveDB();
+            await guardarSeccion('moviles', arr => {
+                if (isEditing) {
+                    const index = arr.findIndex(m => m.id === editId);
+                    if (index >= 0) {
+                        movil.id = editId;
+                        arr[index] = movil;
+                    } else {
+                        arr.push(movil);
+                    }
+                } else {
+                    arr.push(movil);
+                }
+                return arr;
+            });
+            logActivity(isEditing ? 'modificación' : 'registro', `Móvil ${isEditing ? 'actualizado' : 'registrado'}: ${movil.tipo}`);
+
             closeModal('nuevoMovilModal');
             document.getElementById('nuevoMovilModal').querySelector('form').reset();
             refreshMoviles();
@@ -4624,15 +4676,14 @@
             openModal('nuevoMovilModal');
         }
 
-        function deleteMovil(id) {
+        async function deleteMovil(id) {
             if (!confirm('¿Eliminar este móvil?')) return;
             const registro = DB.moviles.find(m => m.id === id);
-            DB.moviles = DB.moviles.filter(m => m.id !== id);
+            await guardarSeccion('moviles', arr => arr.filter(m => m.id !== id));
             if (registro) {
-                moverAPapelera('Móvil', 'moviles', registro);
+                await moverAPapelera('Móvil', 'moviles', registro);
                 logActivity('eliminación', `Móvil: ${registro.ppu || id}`);
             }
-            saveDB();
             refreshMoviles();
             actualizarSelectMoviles();
         }
@@ -4823,7 +4874,7 @@
             window.map.on('click', window.movilMapListener);
         }
 
-        function saveActividadMovil(e) {
+        async function saveActividadMovil(e) {
             e.preventDefault();
 
             const tipoUbicacion = document.querySelector('input[name="tipoUbicacionMovil"]:checked')?.value;
@@ -4865,19 +4916,25 @@
                 fechaRegistro: new Date().toLocaleString()
             };
 
-            if (window.editandoActividadMovilId) {
-                const index = DB.actividadesMovil.findIndex(a => a.id === window.editandoActividadMovilId);
-                if (index >= 0) {
-                    DB.actividadesMovil[index] = actividad;
-                    logActivity('modificación', `Actividad móvil actualizada: ${actividad.choferNombre}`);
-                }
-                window.editandoActividadMovilId = null;
-            } else {
-                DB.actividadesMovil.push(actividad);
-                logActivity('registro', `Actividad móvil: ${actividad.choferNombre}`);
-            }
+            const editId = window.editandoActividadMovilId;
+            const isEditing = !!editId;
+            window.editandoActividadMovilId = null;
 
-            saveDB();
+            await guardarSeccion('actividadesMovil', arr => {
+                if (isEditing) {
+                    const index = arr.findIndex(a => a.id === editId);
+                    if (index >= 0) {
+                        arr[index] = actividad;
+                    } else {
+                        arr.push(actividad);
+                    }
+                } else {
+                    arr.push(actividad);
+                }
+                return arr;
+            });
+            logActivity(isEditing ? 'modificación' : 'registro', `Actividad móvil ${isEditing ? 'actualizada' : ''}: ${actividad.choferNombre}`);
+
             closeModal('nuevaActividadMovilModal');
             document.getElementById('nuevaActividadMovilModal').querySelector('form').reset();
             refreshActividadesMovil();
@@ -4963,15 +5020,14 @@
             openModal('nuevaActividadMovilModal');
         }
 
-        function deleteActividadMovil(id) {
+        async function deleteActividadMovil(id) {
             if (!confirm('¿Eliminar esta actividad?')) return;
             const registro = DB.actividadesMovil.find(a => a.id === id);
-            DB.actividadesMovil = DB.actividadesMovil.filter(a => a.id !== id);
+            await guardarSeccion('actividadesMovil', arr => arr.filter(a => a.id !== id));
             if (registro) {
-                moverAPapelera('Actividad Móvil', 'actividadesMovil', registro);
+                await moverAPapelera('Actividad Móvil', 'actividadesMovil', registro);
                 logActivity('eliminación', `Actividad Móvil: ${registro.fecha || id}`);
             }
-            saveDB();
             refreshActividadesMovil();
             actualizarAgendaCalendarioMoviles();
         }
@@ -5149,7 +5205,7 @@
             }
         }
 
-        function saveActividadEquipo(e) {
+        async function saveActividadEquipo(e) {
             e.preventDefault();
 
             const tipoUbicacion = document.querySelector('input[name="tipoUbicacion"]:checked')?.value;
@@ -5187,30 +5243,41 @@
 
             // Actualizar la ubicación del equipo si se proporcionó ubicación en mapa
             if (lat !== null && lon !== null && equipoId) {
-                const equipo = DB.equipos.find(e => e.id == equipoId);
-                if (equipo) {
-                    equipo.lat = lat;
-                    equipo.lon = lon;
-                    console.log(`✅ Ubicación del equipo actualizada a [${lat}, ${lon}]`);
-                }
+                await guardarSeccion('equipos', arr => {
+                    const equipo = arr.find(eq => eq.id == equipoId);
+                    if (equipo) {
+                        equipo.lat = lat;
+                        equipo.lon = lon;
+                        console.log(`✅ Ubicación del equipo actualizada a [${lat}, ${lon}]`);
+                    }
+                    return arr;
+                });
             }
 
-            if (editandoActividadId) {
-                // Modo edición: actualizar actividad existente
-                const index = DB.actividadesEquipo.findIndex(a => a.id === editandoActividadId);
-                if (index >= 0) {
-                    DB.actividadesEquipo[index] = actividad;
-                    logActivity('modificación', `Actividad equipo actualizada: ${actividad.encargado}`);
-                    console.log(`✏️ Actividad ${editandoActividadId} actualizada`);
+            const editId = editandoActividadId;
+            const isEditing = !!editId;
+            editandoActividadId = null;
+
+            await guardarSeccion('actividadesEquipo', arr => {
+                if (isEditing) {
+                    const index = arr.findIndex(a => a.id === editId);
+                    if (index >= 0) {
+                        arr[index] = actividad;
+                    } else {
+                        arr.push(actividad);
+                    }
+                } else {
+                    arr.push(actividad);
                 }
-                editandoActividadId = null;
+                return arr;
+            });
+            if (isEditing) {
+                logActivity('modificación', `Actividad equipo actualizada: ${actividad.encargado}`);
+                console.log(`✏️ Actividad ${editId} actualizada`);
             } else {
-                // Modo nuevo: agregar nueva actividad
-                DB.actividadesEquipo.push(actividad);
                 logActivity('registro', `Actividad equipo: ${actividad.encargado}`);
             }
 
-            saveDB();
             closeModal('nuevaActividadEquipoModal');
             document.getElementById('nuevaActividadEquipoModal').querySelector('form').reset();
             refreshActividadesEquipo();
@@ -5301,15 +5368,14 @@
             openModal('nuevaActividadEquipoModal');
         }
 
-        function deleteActividadEquipo(id) {
+        async function deleteActividadEquipo(id) {
             if (!confirm('¿Eliminar esta actividad?')) return;
             const registro = DB.actividadesEquipo.find(a => a.id === id);
-            DB.actividadesEquipo = DB.actividadesEquipo.filter(a => a.id !== id);
+            await guardarSeccion('actividadesEquipo', arr => arr.filter(a => a.id !== id));
             if (registro) {
-                moverAPapelera('Actividad Equipo', 'actividadesEquipo', registro);
+                await moverAPapelera('Actividad Equipo', 'actividadesEquipo', registro);
                 logActivity('eliminación', `Actividad Equipo: ${registro.fecha || id}`);
             }
-            saveDB();
             refreshActividadesEquipo();
             actualizarAgendaCalendario();
         }
@@ -5368,19 +5434,23 @@
         }
 
         // ===== CHAT =====
-        function sendChat() {
+        async function sendChat() {
             const input = document.getElementById('chatInput');
             const sector = document.getElementById('sectorSelect').value || 'general';
             if (!input.value.trim()) return;
 
-            DB.chat.push({
-                usuario: currentUser,
-                mensaje: input.value,
-                sector: sector,
-                fecha: new Date().toLocaleTimeString()
-            });
-            saveDB();
+            const mensaje = input.value;
             input.value = '';
+
+            await guardarSeccion('chat', arr => {
+                arr.push({
+                    usuario: currentUser,
+                    mensaje: mensaje,
+                    sector: sector,
+                    fecha: new Date().toLocaleTimeString()
+                });
+                return arr;
+            });
             refreshChat();
         }
 
@@ -5396,17 +5466,19 @@
         }
 
         // ===== REPORTES =====
-        function saveReporte(e) {
+        async function saveReporte(e) {
             e.preventDefault();
-            DB.reportes.push({
-                id: Date.now(),
-                tipo: document.getElementById('reportTipo').value,
-                descripcion: document.getElementById('reportDesc').value,
-                sector: document.getElementById('reportSector').value,
-                usuario: currentUser,
-                fecha: new Date().toLocaleString()
+            await guardarSeccion('reportes', arr => {
+                arr.push({
+                    id: Date.now(),
+                    tipo: document.getElementById('reportTipo').value,
+                    descripcion: document.getElementById('reportDesc').value,
+                    sector: document.getElementById('reportSector').value,
+                    usuario: currentUser,
+                    fecha: new Date().toLocaleString()
+                });
+                return arr;
             });
-            saveDB();
             closeModal('reportModal');
             refreshReportes();
         }
@@ -5687,32 +5759,34 @@
                     return;
                 }
 
-                // Obtener PPUs existentes
-                const ppusExistentes = new Set(DB.moviles.map(m => m.ppu));
                 let nuevosVehiculos = 0;
 
-                // Agregar vehículos que no existan
-                data.vehiculos.forEach(v => {
-                    if (!ppusExistentes.has(v.ppu)) {
-                        DB.moviles.push({
-                            id: Date.now() + Math.random(),
-                            ppu: v.ppu,
-                            tipo: v.tipoVehiculo,
-                            combustible: v.combustible,
-                            marca: v.marca,
-                            modelo: v.modelo,
-                            anio: v.anio,
-                            tipoMaquinaria: '',
-                            choferBase: '-',
-                            fechaRegistro: new Date().toLocaleString()
-                        });
-                        nuevosVehiculos++;
-                    }
+                await guardarSeccion('moviles', arr => {
+                    // Obtener PPUs existentes (con la versión más fresca del servidor)
+                    const ppusExistentes = new Set(arr.map(m => m.ppu));
+                    data.vehiculos.forEach(v => {
+                        if (!ppusExistentes.has(v.ppu)) {
+                            arr.push({
+                                id: Date.now() + Math.random(),
+                                ppu: v.ppu,
+                                tipo: v.tipoVehiculo,
+                                combustible: v.combustible,
+                                marca: v.marca,
+                                modelo: v.modelo,
+                                anio: v.anio,
+                                tipoMaquinaria: '',
+                                choferBase: '-',
+                                fechaRegistro: new Date().toLocaleString()
+                            });
+                            ppusExistentes.add(v.ppu);
+                            nuevosVehiculos++;
+                        }
+                    });
+                    return arr;
                 });
 
                 if (nuevosVehiculos > 0) {
                     console.log(`✅ ${nuevosVehiculos} vehículos importados correctamente`);
-                    saveDB();
                 }
             } catch (error) {
                 console.warn('⚠️ Error importando vehículos:', error);
@@ -5727,29 +5801,32 @@
                     return;
                 }
 
-                // Evitar duplicados: usar el código de UV como identificador estable
-                const codigosExistentes = new Set(DB.localidades.filter(l => l.codigoUV).map(l => l.codigoUV));
                 let nuevas = 0;
 
-                UV_ILLAPEL_DATA.unidades.forEach(uv => {
-                    if (!codigosExistentes.has(uv.codigoUV)) {
-                        DB.localidades.push({
-                            id: Date.now() + Math.random(),
-                            nombre: uv.nombre,
-                            tipo: 'Unidad Vecinal',
-                            lat: uv.lat,
-                            lon: uv.lon,
-                            codigoUV: uv.codigoUV,
-                            idUV: uv.idUV,
-                            fecha: new Date().toLocaleString()
-                        });
-                        nuevas++;
-                    }
+                await guardarSeccion('localidades', arr => {
+                    // Evitar duplicados: usar el código de UV como identificador estable
+                    const codigosExistentes = new Set(arr.filter(l => l.codigoUV).map(l => l.codigoUV));
+                    UV_ILLAPEL_DATA.unidades.forEach(uv => {
+                        if (!codigosExistentes.has(uv.codigoUV)) {
+                            arr.push({
+                                id: Date.now() + Math.random(),
+                                nombre: uv.nombre,
+                                tipo: 'Unidad Vecinal',
+                                lat: uv.lat,
+                                lon: uv.lon,
+                                codigoUV: uv.codigoUV,
+                                idUV: uv.idUV,
+                                fecha: new Date().toLocaleString()
+                            });
+                            codigosExistentes.add(uv.codigoUV);
+                            nuevas++;
+                        }
+                    });
+                    return arr;
                 });
 
                 if (nuevas > 0) {
                     console.log(`✅ ${nuevas} unidades vecinales importadas correctamente`);
-                    saveDB();
                 }
             } catch (error) {
                 console.warn('⚠️ Error importando unidades vecinales:', error);
@@ -6262,16 +6339,16 @@
         // ===== PAPELERA (registros eliminados, recuperables solo por el admin) =====
 
         // Guarda una copia del registro eliminado en la papelera, antes de borrarlo definitivamente del módulo
-        function moverAPapelera(tipo, arrayKey, registro) {
-            if (!DB.papelera) DB.papelera = [];
-            DB.papelera.push({
+        async function moverAPapelera(tipo, arrayKey, registro) {
+            const entrada = {
                 id: Date.now() + Math.random(),
                 tipo,
                 arrayKey,
                 registro,
                 eliminadoPor: currentUser,
                 fecha: new Date().toLocaleString('es-CL')
-            });
+            };
+            await guardarSeccion('papelera', arr => { arr.push(entrada); return arr; });
         }
 
         // Genera una descripción legible de un registro eliminado, según su tipo
@@ -6317,23 +6394,29 @@
         }
 
         // Restaurar un registro eliminado (solo admin)
-        function restaurarRegistro(papeleraId) {
+        async function restaurarRegistro(papeleraId) {
             if (currentUser !== 'admin') {
                 alert('Solo el administrador puede restaurar registros eliminados');
                 return;
             }
 
-            const idx = (DB.papelera || []).findIndex(p => p.id === papeleraId);
-            if (idx === -1) return;
-            const item = DB.papelera[idx];
+            // Traer la papelera más reciente del servidor antes de decidir, por si
+            // otro admin ya restauró/eliminó este mismo registro desde otra sesión.
+            const papeleraRemota = await apiGetKey(SECTION_KEYS.papelera);
+            const papeleraActual = papeleraRemota || DB.papelera || [];
+            const item = papeleraActual.find(p => p.id === papeleraId);
+            if (!item) {
+                alert('Este registro ya no está en la papelera (puede que otro administrador ya lo haya restaurado o eliminado).');
+                DB.papelera = papeleraActual;
+                refreshPapelera();
+                return;
+            }
 
             if (!confirm(`¿Restaurar este registro?\n\n${item.tipo}: ${descripcionPapelera(item)}`)) return;
 
-            if (!DB[item.arrayKey]) DB[item.arrayKey] = [];
-            DB[item.arrayKey].push(item.registro);
-            DB.papelera.splice(idx, 1);
+            await guardarSeccion(item.arrayKey, arr => { arr.push(item.registro); return arr; });
+            await guardarSeccion('papelera', () => papeleraActual.filter(p => p.id !== papeleraId));
 
-            saveDB();
             logActivity('restauración', `${item.tipo} restaurado: ${descripcionPapelera(item)}`);
 
             renderAllViews();
@@ -6342,20 +6425,25 @@
         }
 
         // Eliminar definitivamente un registro de la papelera (solo admin, sin posibilidad de deshacer)
-        function eliminarDefinitivo(papeleraId) {
+        async function eliminarDefinitivo(papeleraId) {
             if (currentUser !== 'admin') {
                 alert('Solo el administrador puede eliminar definitivamente');
                 return;
             }
 
-            const idx = (DB.papelera || []).findIndex(p => p.id === papeleraId);
-            if (idx === -1) return;
-            const item = DB.papelera[idx];
+            const papeleraRemota = await apiGetKey(SECTION_KEYS.papelera);
+            const papeleraActual = papeleraRemota || DB.papelera || [];
+            const item = papeleraActual.find(p => p.id === papeleraId);
+            if (!item) {
+                alert('Este registro ya no está en la papelera.');
+                DB.papelera = papeleraActual;
+                refreshPapelera();
+                return;
+            }
 
             if (!confirm(`⚠️ Esta acción NO se puede deshacer.\n\n¿Eliminar definitivamente?\n\n${item.tipo}: ${descripcionPapelera(item)}`)) return;
 
-            DB.papelera.splice(idx, 1);
-            saveDB();
+            await guardarSeccion('papelera', () => papeleraActual.filter(p => p.id !== papeleraId));
             logActivity('eliminación_definitiva', `${item.tipo} eliminado definitivamente: ${descripcionPapelera(item)}`);
 
             refreshPapelera();
