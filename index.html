@@ -6237,8 +6237,15 @@
             apiPutKey(ACTIVITY_LOG_KEY, log);
         }
 
-        function logActivity(action, details) {
-            const log = JSON.parse(localStorage.getItem(ACTIVITY_LOG_KEY) || '[]');
+        async function logActivity(action, details) {
+            // Traer el registro más reciente del servidor antes de anexar. Si se
+            // usaba solo la copia local, una sesión con caché desactualizada podía
+            // sobrescribir en el servidor las actividades registradas por otros
+            // usuarios/dispositivos que esta sesión aún no había sincronizado —
+            // por eso el registro de actividades (y por extensión, lo que la
+            // papelera puede mostrar) parecía "perder" acciones de otros usuarios.
+            const remoteLog = await apiGetKey(ACTIVITY_LOG_KEY);
+            const log = remoteLog || JSON.parse(localStorage.getItem(ACTIVITY_LOG_KEY) || '[]');
             const timestamp = new Date().toLocaleString('es-CL');
             const activity = {
                 id: Date.now(),
