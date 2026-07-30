@@ -7,6 +7,8 @@
     <link rel="manifest" href="manifest.json">
     <!-- Datos de Vehículos -->
     <script src="vehiculos.js"></script>
+    <!-- Datos de Unidades Vecinales -->
+    <script src="unidades_vecinales_illapel.js"></script>
 
     <!-- Configuración GIS (DEBE SER PRIMERO) -->
     <script src="gis-config.js"></script>
@@ -1476,7 +1478,7 @@
             <div class="modal-header"><span>Nueva Localidad</span><button class="modal-close" onclick="closeModal('nuevaLocalidadModal')">×</button></div>
             <form onsubmit="saveLocalidad(event)">
                 <div class="form-group"><label>Nombre *</label><input type="text" id="locNombre" placeholder="ej: Centro de Salud, Escuela" required></div>
-                <div class="form-group"><label>Tipo *</label><select id="locTipo" required><option>Localidad</option><option>Centro de Salud</option><option>Escuela</option><option>Estación de Bomberos</option><option>Comisaría</option><option>Otro</option></select></div>
+                <div class="form-group"><label>Tipo *</label><select id="locTipo" required><option>Localidad</option><option>Unidad Vecinal</option><option>Centro de Salud</option><option>Escuela</option><option>Estación de Bomberos</option><option>Comisaría</option><option>Otro</option></select></div>
                 <div class="form-row">
                     <div class="form-group"><label>Latitud *</label><input type="number" id="locLat" step="0.00001" required></div>
                     <div class="form-group"><label>Longitud *</label><input type="number" id="locLon" step="0.00001" required></div>
@@ -2910,16 +2912,33 @@
             // Actualizar marcadores de localidades en el mapa
             if (!map) return;
 
+            // Esta función se llama repetidamente (cada 15s por el polling y tras
+            // cada guardado). Sin un layer group propio, cada llamada agregaba
+            // marcadores nuevos sin quitar los anteriores, duplicándolos sin
+            // control. Se usa un LayerGroup dedicado que se limpia antes de redibujar.
+            if (!window.localidadesLayerGroup) {
+                window.localidadesLayerGroup = L.layerGroup().addTo(map);
+            }
+            window.localidadesLayerGroup.clearLayers();
+
+            const coloresPorTipo = {
+                'Unidad Vecinal': '#16a085',
+                'Centro de Salud': '#e74c3c',
+                'Escuela': '#f39c12',
+                'Estación de Bomberos': '#c0392b',
+                'Comisaría': '#2c3e50'
+            };
+
             DB.localidades.forEach(loc => {
                 L.circleMarker([loc.lat, loc.lon], {
                     radius: 8,
-                    fillColor: '#3498db',
+                    fillColor: coloresPorTipo[loc.tipo] || '#3498db',
                     color: '#fff',
                     weight: 2,
                     opacity: 1,
                     fillOpacity: 0.8
                 }).bindPopup(`<strong>📍 ${loc.nombre}</strong><br/>${loc.tipo}`)
-                 .addTo(map);
+                 .addTo(window.localidadesLayerGroup);
             });
         }
 
@@ -5507,6 +5526,43 @@
             }
         }
 
+        async function importarUnidadesVecinales() {
+            try {
+                // Usar los datos de unidades_vecinales_illapel.js (precargados desde el shapefile oficial)
+                if (typeof UV_ILLAPEL_DATA === 'undefined' || !Array.isArray(UV_ILLAPEL_DATA.unidades)) {
+                    console.warn('⚠️ Datos de unidades vecinales no disponibles');
+                    return;
+                }
+
+                // Evitar duplicados: usar el código de UV como identificador estable
+                const codigosExistentes = new Set(DB.localidades.filter(l => l.codigoUV).map(l => l.codigoUV));
+                let nuevas = 0;
+
+                UV_ILLAPEL_DATA.unidades.forEach(uv => {
+                    if (!codigosExistentes.has(uv.codigoUV)) {
+                        DB.localidades.push({
+                            id: Date.now() + Math.random(),
+                            nombre: uv.nombre,
+                            tipo: 'Unidad Vecinal',
+                            lat: uv.lat,
+                            lon: uv.lon,
+                            codigoUV: uv.codigoUV,
+                            idUV: uv.idUV,
+                            fecha: new Date().toLocaleString()
+                        });
+                        nuevas++;
+                    }
+                });
+
+                if (nuevas > 0) {
+                    console.log(`✅ ${nuevas} unidades vecinales importadas correctamente`);
+                    saveDB();
+                }
+            } catch (error) {
+                console.warn('⚠️ Error importando unidades vecinales:', error);
+            }
+        }
+
         // ===== INIT =====
         function renderAllViews() {
             refreshEmergencias();
@@ -5541,6 +5597,7 @@
         async function loadAllData() {
             await loadDB();
             await importarVehiculos(); // Esperar a que se importen los datos de vehículos
+            await importarUnidadesVecinales(); // Esperar a que se importen las unidades vecinales
             renderAllViews();
         }
 

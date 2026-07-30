@@ -1,0 +1,42 @@
+// Datos de Unidades Vecinales de Illapel 2024 - Auto-generado desde shapefile uv_illapel_2024
+// Fuente: uv_illapel_2024.shp (SUBDERE/Municipalidad) - coordenadas WGS84 (centroide de cada polígono)
+const UV_ILLAPEL_DATA = {
+  "unidades": [
+    {"nombre": "UV 1 - Urbana", "codigoUV": "1", "idUV": "4201493", "lat": -31.634871, "lon": -71.178502},
+    {"nombre": "UV 2 - Urbana", "codigoUV": "2", "idUV": "4201501", "lat": -31.628755, "lon": -71.174692},
+    {"nombre": "UV 3 - Urbana", "codigoUV": "3", "idUV": "4201490", "lat": -31.629398, "lon": -71.169525},
+    {"nombre": "UV 4 - Urbana", "codigoUV": "4", "idUV": "4201488", "lat": -31.626242, "lon": -71.169914},
+    {"nombre": "UV 5 - Urbana", "codigoUV": "5", "idUV": "4201489", "lat": -31.626701, "lon": -71.164038},
+    {"nombre": "UV 6 - Urbana", "codigoUV": "6", "idUV": "4201499", "lat": -31.626051, "lon": -71.158899},
+    {"nombre": "UV 7 - Urbana", "codigoUV": "7", "idUV": "4201496", "lat": -31.623189, "lon": -71.150156},
+    {"nombre": "UV 8 - Urbana", "codigoUV": "8", "idUV": "4201494", "lat": -31.638673, "lon": -71.174585},
+    {"nombre": "UV 9 - Urbana", "codigoUV": "9", "idUV": "4201492", "lat": -31.633748, "lon": -71.168894},
+    {"nombre": "UV 10 - Urbana", "codigoUV": "10", "idUV": "4201491", "lat": -31.631594, "lon": -71.16303},
+    {"nombre": "UV 11 - Urbana", "codigoUV": "11", "idUV": "4201495", "lat": -31.630249, "lon": -71.1575},
+    {"nombre": "UV 12 - Urbana", "codigoUV": "12", "idUV": "4201498", "lat": -31.628291, "lon": -71.153385},
+    {"nombre": "UV 13 - Urbana", "codigoUV": "13", "idUV": "4201497", "lat": -31.624935, "lon": -71.147379},
+    {"nombre": "UV 14AR - Las Canas De Michio", "codigoUV": "14AR", "idUV": "4201471", "lat": -31.658169, "lon": -71.084687},
+    {"nombre": "UV 15AR - Quillaicillo", "codigoUV": "15AR", "idUV": "4201470", "lat": -31.528777, "lon": -71.22545},
+    {"nombre": "UV 16AR - Plan De Hornos", "codigoUV": "16AR", "idUV": "4201487", "lat": -31.443439, "lon": -71.112047},
+    {"nombre": "UV 17AR - Matancilla", "codigoUV": "17AR", "idUV": "4201469", "lat": -31.386294, "lon": -70.957836},
+    {"nombre": "UV 18AR - Farellon Sanchez", "codigoUV": "18AR", "idUV": "4201486", "lat": -31.489419, "lon": -71.010528},
+    {"nombre": "UV 19AR - Asiento Viejo", "codigoUV": "19AR", "idUV": "4201485", "lat": -31.572628, "lon": -71.1453},
+    {"nombre": "UV 20AR - La Colonia", "codigoUV": "20AR", "idUV": "4201500", "lat": -31.611847, "lon": -71.11091},
+    {"nombre": "UV 21AR - Carcamo", "codigoUV": "21AR", "idUV": "4201482", "lat": -31.610367, "lon": -71.025786},
+    {"nombre": "UV 22AR - Huintil", "codigoUV": "22AR", "idUV": "4201483", "lat": -31.573542, "lon": -70.986556},
+    {"nombre": "UV 23AR - La Capilla", "codigoUV": "23AR", "idUV": "4201484", "lat": -31.552501, "lon": -70.897797},
+    {"nombre": "UV 24AR - Santa Virginia", "codigoUV": "24AR", "idUV": "4201468", "lat": -31.465428, "lon": -70.692915},
+    {"nombre": "UV 25AR - Peralillo", "codigoUV": "25AR", "idUV": "4201477", "lat": -31.715249, "lon": -71.115614},
+    {"nombre": "UV 26AR - Limahuida", "codigoUV": "26AR", "idUV": "4201476", "lat": -31.818152, "lon": -71.155184},
+    {"nombre": "UV 27AR - Pintacura", "codigoUV": "27AR", "idUV": "4201478", "lat": -31.707782, "lon": -71.198091},
+    {"nombre": "UV 28AR - Las Canas Uno", "codigoUV": "28AR", "idUV": "4201481", "lat": -31.724969, "lon": -71.265854},
+    {"nombre": "UV 29AR - Las Canas Dos", "codigoUV": "29AR", "idUV": "4201475", "lat": -31.753815, "lon": -71.231107},
+    {"nombre": "UV 30AR - Choapa", "codigoUV": "30AR", "idUV": "4201479", "lat": -31.757727, "lon": -71.199017},
+    {"nombre": "UV 31AR - Canelillo", "codigoUV": "31AR", "idUV": "4201480", "lat": -31.762741, "lon": -71.286176},
+    {"nombre": "UV 32AR - Cuz Cuz", "codigoUV": "32AR", "idUV": "4201502", "lat": -31.631586, "lon": -71.234873},
+    {"nombre": "UV 33AR - El Maiten", "codigoUV": "33AR", "idUV": "4201472", "lat": -31.668897, "lon": -71.210277},
+    {"nombre": "UV 34AR - Tunga Norte", "codigoUV": "34AR", "idUV": "4201473", "lat": -31.629522, "lon": -71.32446},
+    {"nombre": "UV 35AR - Tunga Sur", "codigoUV": "35AR", "idUV": "4201474", "lat": -31.673023, "lon": -71.34093},
+    {"nombre": "UV 36 - San Rafael", "codigoUV": "36", "idUV": "4201503", "lat": -31.638197, "lon": -71.189691}
+  ]
+};
